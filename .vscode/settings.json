@@ -1,0 +1,30 @@
+{
+  "cSpell.words": [
+    "AESIV",
+    "arisu",
+    "Arona",
+    "canonicalheader",
+    "flatbuffers",
+    "flatdata",
+    "gosec",
+    "Nexon",
+    "Ngsm",
+    "noctx",
+    "nolint",
+    "Npacode",
+    "onsi",
+    "padtext",
+    "PKCS",
+    "unpadded",
+    "Unpadding",
+    "wrapcheck"
+],
+  "go.lintTool": "golangci-lint-v2",
+  "go.lintFlags": [
+    "--fix",
+  ],
+  "gopls": {
+    "formatting.local": "github.com/arisu-archive/go-plana",
+    "formatting.gofumpt": true
+  }
+}
