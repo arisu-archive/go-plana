@@ -27,11 +27,7 @@ func (c *Client) encodeProtocol(ctx context.Context, crc32 uint32, p protos.Prot
 		return 0, fmt.Errorf("failed to serialize protocol encoder request: %w", err)
 	}
 
-	u, err := c.ProtocolEncoderURL.Parse("/")
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse protocol encoder URL: %w", err)
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewBuffer(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.ProtocolEncoderURL.String(), bytes.NewBuffer(payload))
 	if err != nil {
 		return 0, fmt.Errorf("failed to create protocol encoder request: %w", err)
 	}

@@ -20,8 +20,8 @@ const (
 	Version           = "1.82.378581"
 	defaultUserAgent  = "BestHTTP/2 v2.4.0"
 	defaultXorKey     = 0xD9
-	defaultGatewayURL = "https://prod-game.bluearchiveyostar.com:5100/"
-	defaultGameURL    = "https://prod-gateway.bluearchiveyostar.com:5000/"
+	defaultGatewayURL = "https://prod-gateway.bluearchiveyostar.com:5100/"
+	defaultGameURL    = "https://prod-game.bluearchiveyostar.com:5000/"
 )
 
 type Client struct {
@@ -37,6 +37,7 @@ type Client struct {
 	UserAgent string
 
 	ProtocolEncoderURL *url.URL // URL of the protocol encoder service.
+	GetCookieURL       *url.URL // URL for getting cookies.
 
 	// PublicKey is the RSA public key used for encrypting sensitive data.
 	publicKey *rsa.PublicKey
@@ -51,6 +52,7 @@ type Client struct {
 	Account       *AccountService
 	Arena         *ArenaService
 	Clan          *ClanService
+	Cookie        *CookieService
 	EliminateRaid *EliminateRaidService
 	Friend        *FriendService
 	Queuing       *QueuingService
@@ -200,6 +202,7 @@ func (c *Client) initialize() *Client {
 	c.Account = (*AccountService)(&c.common)
 	c.Arena = (*ArenaService)(&c.common)
 	c.Clan = (*ClanService)(&c.common)
+	c.Cookie = (*CookieService)(&c.common)
 	c.EliminateRaid = (*EliminateRaidService)(&c.common)
 	c.Friend = (*FriendService)(&c.common)
 	c.Queuing = (*QueuingService)(&c.common)

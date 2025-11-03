@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestArona(t *testing.T) {
+func TestPlana(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Arona Suite")
+	RunSpecs(t, "Plana Suite")
 }
