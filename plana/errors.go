@@ -12,15 +12,15 @@ type ErrInvalidSession struct {
 	inner *ErrWebAPIError
 }
 
-func (e *ErrInvalidSession) Error() string {
+func (e ErrInvalidSession) Error() string {
 	return e.msg
 }
 
-func (e *ErrInvalidSession) Code() protos.WebAPIErrorCode {
+func (e ErrInvalidSession) Code() protos.WebAPIErrorCode {
 	return e.code
 }
 
-func (e *ErrInvalidSession) Unwrap() error {
+func (e ErrInvalidSession) Unwrap() error {
 	return e.inner
 }
 
