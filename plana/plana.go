@@ -210,26 +210,58 @@ func (c *Client) initialize() *Client {
 	return c
 }
 
-func (c *Client) Do(ctx context.Context, req *Request, v any) (*Response, error) {
+func (c *Client) Do(ctx context.Context, req *Request, packet any) (*Response, error) {
 	resp, err := c.bareDo(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	switch v := v.(type) {
-	case nil:
-	case io.Writer:
-		_, err = io.Copy(v, resp.Body)
-	default:
-		decErr := c.JSONSerializer.DeserializeReader(resp.Body, v)
-		if errors.Is(decErr, io.EOF) {
-			decErr = nil // ignore EOF errors caused by empty response body
-		}
-		if decErr != nil {
-			err = decErr
-		}
+
+	var responseData ResponseData
+	decErr := c.JSONSerializer.DeserializeReader(resp.Body, &responseData)
+	if errors.Is(decErr, io.EOF) {
+		decErr = nil // ignore EOF errors caused by empty response body
 	}
-	return resp, err
+	if decErr != nil {
+		err = decErr
+	}
+
+	// Handle error protocol
+	if responseData.Protocol == protos.Protocol_Error {
+		errPacket, err := c.handleErrorPacket(responseData)
+		if err != nil {
+			return nil, err
+		}
+		return c.handleKnownErrorPacket(errPacket)
+	}
+	if err := c.handleResponsePacket(responseData, packet); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *Client) handleResponsePacket(responseData ResponseData, packet any) error {
+	if err := c.JSONSerializer.Deserialize([]byte(responseData.Packet), packet); err != nil {
+		return fmt.Errorf("failed to deserialize response packet: %w", err)
+	}
+	return nil
+}
+
+func (c *Client) handleKnownErrorPacket(errPacket *protos.ErrorPacket) (*Response, error) {
+	err := NewWebAPIError(errPacket)
+	switch err.Code() {
+	case protos.WebAPIErrorCode_InvalidSession:
+		return nil, NewInvalidSessionError("invalid session", err)
+	}
+	return nil, err
+}
+
+func (c *Client) handleErrorPacket(responseData ResponseData) (*protos.ErrorPacket, error) {
+	errorPacket := new(protos.ErrorPacket)
+	if err := c.handleResponsePacket(responseData, errorPacket); err != nil {
+		return nil, fmt.Errorf("failed to handle error packet: %w", err)
+	}
+	return errorPacket, nil
 }
 
 func (c *Client) bareDo(ctx context.Context, req *Request) (*Response, error) {
