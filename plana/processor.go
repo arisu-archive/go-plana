@@ -189,8 +189,12 @@ func (*Processor) BuildPacket(payload []byte, checksum, encodedProtocol uint32, 
 	// Server key/IV metadata
 	packet.WriteByte(byte(len(key.ServerKeyBundle.Key)))
 	packet.WriteByte(byte(len(key.ServerKeyBundle.IV)))
-	packet.Write(key.ServerKeyBundle.Key)
-	packet.Write(key.ServerKeyBundle.IV)
+	if len(key.ServerKeyBundle.Key) > 0 {
+		packet.Write(key.ServerKeyBundle.Key)
+	}
+	if len(key.ServerKeyBundle.IV) > 0 {
+		packet.Write(key.ServerKeyBundle.IV)
+	}
 	packet.Write(payload)
 	return packet.Bytes()
 }
