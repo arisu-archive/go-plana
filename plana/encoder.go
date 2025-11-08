@@ -31,6 +31,7 @@ func (c *Client) encodeProtocol(ctx context.Context, crc32 uint32, p protos.Prot
 	if err != nil {
 		return 0, fmt.Errorf("failed to create protocol encoder request: %w", err)
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.client.Do(req)
 	if err != nil {
