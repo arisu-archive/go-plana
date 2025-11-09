@@ -143,22 +143,32 @@ func (rb *RequestBuilder) WithSession(session UserSession) *RequestBuilder {
 	return rb
 }
 
-func (rb *RequestBuilder) Gateway(ctx context.Context, protocol protos.Protocol, body RequestPacketReader) (*Request, error) {
+func (rb *RequestBuilder) Gateway(
+	ctx context.Context,
+	protocol protos.Protocol,
+	body RequestPacketReader,
+	opts ...PacketPopulatorOption,
+) (*Request, error) {
 	return rb.client.newRequest(ctx, requestParams{
 		apiType:  gateway,
 		protocol: protocol,
 		body:     body,
 		session:  rb.session,
-	})
+	}, opts...)
 }
 
-func (rb *RequestBuilder) Game(ctx context.Context, protocol protos.Protocol, body RequestPacketReader) (*Request, error) {
+func (rb *RequestBuilder) Game(
+	ctx context.Context,
+	protocol protos.Protocol,
+	body RequestPacketReader,
+	opts ...PacketPopulatorOption,
+) (*Request, error) {
 	return rb.client.newRequest(ctx, requestParams{
 		apiType:  game,
 		protocol: protocol,
 		body:     body,
 		session:  rb.session,
-	})
+	}, opts...)
 }
 
 // NewClient returns a new Arona API client. If a nil httpClient is
@@ -297,8 +307,10 @@ func (c *Client) bareDo(ctx context.Context, req *Request) (*Response, error) {
 func (c *Client) newRequest(
 	ctx context.Context,
 	params requestParams,
+	opts ...PacketPopulatorOption,
 ) (*Request, error) {
-	c.populate(params.body.Packet(), params.protocol, WithSessionKey(params.session))
+	opts = append(opts, withSessionKey(params.session))
+	c.populate(params.body.Packet(), params.protocol, opts...)
 	// Process payload through crypto pipeline
 	payload, err := c.processor.Process(params.body, params.session)
 	if err != nil {

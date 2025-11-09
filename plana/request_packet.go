@@ -16,7 +16,7 @@ type RequestPacketReader interface {
 
 type PacketPopulatorOption func(*protos.RequestPacket)
 
-func WithSessionKey(session UserSession) PacketPopulatorOption {
+func withSessionKey(session UserSession) PacketPopulatorOption {
 	return func(packet *protos.RequestPacket) {
 		if reflect.ValueOf(session.SessionKey).IsZero() {
 			// Skip if session key is empty
@@ -31,6 +31,12 @@ func WithSessionKey(session UserSession) PacketPopulatorOption {
 func WithRequestCount(requestCount int64) PacketPopulatorOption {
 	return func(packet *protos.RequestPacket) {
 		packet.Hash = requestCount | (int64(packet.Protocol) << 32)
+	}
+}
+
+func WithHash(hash int64) PacketPopulatorOption {
+	return func(packet *protos.RequestPacket) {
+		packet.Hash = hash
 	}
 }
 
