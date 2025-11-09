@@ -2,9 +2,11 @@ package plana
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -228,16 +230,20 @@ func (c *Client) Do(ctx context.Context, req *Request, packet any) (*Response, e
 	defer resp.Body.Close()
 
 	var responseData ResponseData
-	decErr := c.JSONSerializer.DeserializeReader(resp.Body, &responseData)
+	response, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	decErr := c.JSONSerializer.Deserialize(response, &responseData)
 	if errors.Is(decErr, io.EOF) {
 		decErr = nil // ignore EOF errors caused by empty response body
 	}
 	if decErr != nil {
-		err = decErr
+		return nil, fmt.Errorf("failed to deserialize response data: %w", decErr)
 	}
 
 	// Handle error protocol
-	if responseData.Protocol == protos.Protocol_Error {
+	if responseData.Protocol == "Protocol_Error" {
 		errPacket, err := c.handleErrorPacket(responseData)
 		if err != nil {
 			return nil, err
@@ -257,7 +263,7 @@ func (c *Client) handleResponsePacket(responseData ResponseData, packet any) err
 	return nil
 }
 
-func (c *Client) handleKnownErrorPacket(errPacket *protos.ErrorPacket) (*Response, error) {
+func (*Client) handleKnownErrorPacket(errPacket *protos.ErrorPacket) (*Response, error) {
 	err := NewWebAPIError(errPacket)
 	switch err.Code() {
 	case protos.WebAPIErrorCode_InvalidSession:
@@ -280,7 +286,14 @@ func (c *Client) bareDo(ctx context.Context, req *Request) (*Response, error) {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	// Determine if gzip uncompression is needed
+	if resp.Header.Get("Content-Encoding") == "gzip" {
+		gzgzipReader, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create gzip reader: %w", err)
+		}
+		resp.Body = io.NopCloser(gzgzipReader)
+	}
 
 	// Determine if response should be decrypted based on session keys
 	// If we have server keys, we expect encrypted content that needs decryption
@@ -290,7 +303,13 @@ func (c *Client) bareDo(ctx context.Context, req *Request) (*Response, error) {
 		if err != nil {
 			return nil, fmt.Errorf("response read failed: %w", err)
 		}
-		decryptedData, err := decryptPayload(ciphertext, req.SessionKey.ClientKeyBundle.Key, req.SessionKey.ClientKeyBundle.IV)
+
+		// Decode the response payload from base64 string and decrypt it.
+		decodedCiphertext, err := base64.StdEncoding.DecodeString(string(ciphertext))
+		if err != nil {
+			return nil, fmt.Errorf("response base64 decode failed: %w", err)
+		}
+		decryptedData, err := decryptPayload(decodedCiphertext, req.SessionKey.ClientKeyBundle.Key, req.SessionKey.ClientKeyBundle.IV)
 		if err != nil {
 			return nil, fmt.Errorf("response decryption failed: %w", err)
 		}
