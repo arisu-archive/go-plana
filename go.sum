@@ -6,6 +6,8 @@ github.com/arisu-archive/plana-flatbuffers v0.6.1 h1:eHmzK3Q5BpU1f7w6z5KSovmwWBR
 github.com/arisu-archive/plana-flatbuffers v0.6.1/go.mod h1:r12RdK9y9GVdlzhoPepnHREhuRJ3UbQnpBZYTKuNH80=
 github.com/arisu-archive/plana-protos v0.0.0-20251029183338-e067a237d476 h1:Ak0X9B+fWiF3U4X/i89Sb/7Monj62xu8+b3G5CgvXPg=
 github.com/arisu-archive/plana-protos v0.0.0-20251029183338-e067a237d476/go.mod h1:TxCCjAEEvRcpdg9gmS8ABI+AnXiAojiy27xkjgPnsv4=
+github.com/arisu-archive/plana-protos v0.0.0-20251109135720-0ad4ba91c729 h1:NOQOlW5Y0HQihvWBONZOPcuQI3ytbVogiom6E6G+QOk=
+github.com/arisu-archive/plana-protos v0.0.0-20251109135720-0ad4ba91c729/go.mod h1:TxCCjAEEvRcpdg9gmS8ABI+AnXiAojiy27xkjgPnsv4=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/gkampitakis/ciinfo v0.3.2 h1:JcuOPk8ZU7nZQjdUhctuhQofk7BGHuIy0c9Ez8BNhXs=
