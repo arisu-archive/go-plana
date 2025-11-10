@@ -140,7 +140,7 @@ func compressPayload(payload []byte) ([]byte, error) {
 }
 
 // Process transforms the body through the full cryptographic pipeline.
-func (p *Processor) Process(body any, key UserSession) ([]byte, error) {
+func (p *Processor) Process(body any, key *UserSession) ([]byte, error) {
 	// Step 1: Serialize to JSON
 	payload, err := p.JSONSerializer.Serialize(body, "")
 	if err != nil {
@@ -172,7 +172,7 @@ func (p *Processor) Process(body any, key UserSession) ([]byte, error) {
 }
 
 // BuildPacket constructs the final packet with protocol header and server keys.
-func (*Processor) BuildPacket(payload []byte, checksum, encodedProtocol uint32, key UserSession) []byte {
+func (*Processor) BuildPacket(payload []byte, checksum, encodedProtocol uint32, key *UserSession) []byte {
 	var packet bytes.Buffer
 
 	// Payload checksum
@@ -187,12 +187,21 @@ func (*Processor) BuildPacket(payload []byte, checksum, encodedProtocol uint32, 
 	packet.Write(protocolHeader)
 
 	// Server key/IV metadata
-	packet.WriteByte(byte(len(key.ServerKeyBundle.Key)))
-	packet.WriteByte(byte(len(key.ServerKeyBundle.IV)))
-	if len(key.ServerKeyBundle.Key) > 0 {
+
+	keyLen := 0
+	if key != nil {
+		keyLen = len(key.ServerKeyBundle.Key)
+	}
+	ivLen := 0
+	if key != nil {
+		ivLen = len(key.ServerKeyBundle.IV)
+	}
+	packet.WriteByte(byte(keyLen))
+	packet.WriteByte(byte(ivLen))
+	if keyLen > 0 {
 		packet.Write(key.ServerKeyBundle.Key)
 	}
-	if len(key.ServerKeyBundle.IV) > 0 {
+	if ivLen > 0 {
 		packet.Write(key.ServerKeyBundle.IV)
 	}
 	packet.Write(payload)

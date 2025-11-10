@@ -16,9 +16,9 @@ type RequestPacketReader interface {
 
 type PacketPopulatorOption func(*protos.RequestPacket)
 
-func withSessionKey(session UserSession) PacketPopulatorOption {
+func withSessionKey(session *UserSession) PacketPopulatorOption {
 	return func(packet *protos.RequestPacket) {
-		if reflect.ValueOf(session.SessionKey).IsZero() {
+		if session == nil || reflect.ValueOf(session.SessionKey).IsZero() {
 			// Skip if session key is empty
 			return
 		}

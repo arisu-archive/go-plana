@@ -18,7 +18,7 @@ func (w FriendGetFriendDetailedInfoRequestWrapper) Packet() *protos.RequestPacke
 	return &w.RequestPacket
 }
 
-func (s *FriendService) GetDetail(ctx context.Context, session UserSession, accountID int64) (*protos.FriendGetFriendDetailedInfoResponse, error) {
+func (s *FriendService) GetDetail(ctx context.Context, session *UserSession, accountID int64) (*protos.FriendGetFriendDetailedInfoResponse, error) {
 	param := FriendGetFriendDetailedInfoRequestWrapper{
 		&protos.FriendGetFriendDetailedInfoRequest{
 			FriendAccountId: accountID,
@@ -68,11 +68,11 @@ func (b FriendSearchRequestBuilder) WithLevelOption(option flatdata.FriendSearch
 	return b
 }
 
-func (b FriendSearchRequestBuilder) Execute(ctx context.Context, session UserSession) (*protos.FriendSearchResponse, error) {
+func (b FriendSearchRequestBuilder) Execute(ctx context.Context, session *UserSession) (*protos.FriendSearchResponse, error) {
 	return b.service.submitSearch(ctx, session, b.payload)
 }
 
-func (s *FriendService) submitSearch(ctx context.Context, session UserSession, w FriendSearchRequestWrapper) (*protos.FriendSearchResponse, error) {
+func (s *FriendService) submitSearch(ctx context.Context, session *UserSession, w FriendSearchRequestWrapper) (*protos.FriendSearchResponse, error) {
 	req, err := s.client.R().WithSession(session).Game(ctx, protos.Protocol_Friend_Search, w)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create friend search request: %w", err)

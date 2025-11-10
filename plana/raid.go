@@ -30,7 +30,7 @@ type RaidOpponentListOption func(*protos.RaidOpponentListRequest)
 
 func (b RaidOpponentListRequestBuilder) Search(
 	ctx context.Context,
-	session UserSession,
+	session *UserSession,
 ) (*protos.RaidOpponentListResponse, error) {
 	return b.service.GetOpponents(ctx, session, b.payload)
 }
@@ -61,7 +61,7 @@ func (s *RaidService) WithOpponentScore(score int64) RaidOpponentListRequestBuil
 
 func (s *RaidService) GetOpponents(
 	ctx context.Context,
-	session UserSession,
+	session *UserSession,
 	payload RaidOpponentListRequestWrapper,
 ) (*protos.RaidOpponentListResponse, error) {
 	req, err := s.client.R().WithSession(session).Game(ctx, protos.Protocol_Raid_OpponentList, payload)
@@ -84,7 +84,7 @@ func (w RaidLobbyRequestWrapper) Packet() *protos.RequestPacket {
 	return &w.RequestPacket
 }
 
-func (s *RaidService) Lobby(ctx context.Context, session UserSession) (*protos.RaidLobbyResponse, error) {
+func (s *RaidService) Lobby(ctx context.Context, session *UserSession) (*protos.RaidLobbyResponse, error) {
 	w := RaidLobbyRequestWrapper{
 		RaidLobbyRequest: &protos.RaidLobbyRequest{},
 	}
@@ -108,7 +108,7 @@ func (w RaidGetBestTeamRequestWrapper) Packet() *protos.RequestPacket {
 	return &w.RequestPacket
 }
 
-func (s *RaidService) GetBestTeam(ctx context.Context, session UserSession, accountID int64) (*protos.RaidGetBestTeamResponse, error) {
+func (s *RaidService) GetBestTeam(ctx context.Context, session *UserSession, accountID int64) (*protos.RaidGetBestTeamResponse, error) {
 	w := RaidGetBestTeamRequestWrapper{
 		RaidGetBestTeamRequest: &protos.RaidGetBestTeamRequest{
 			SearchAccountId: accountID,
@@ -134,7 +134,7 @@ func (w RaidRankingIndexRequestWrapper) Packet() *protos.RequestPacket {
 	return &w.RequestPacket
 }
 
-func (s *RaidService) GetRankingIndex(ctx context.Context, session UserSession) (*protos.RaidRankingIndexResponse, error) {
+func (s *RaidService) GetRankingIndex(ctx context.Context, session *UserSession) (*protos.RaidRankingIndexResponse, error) {
 	w := RaidRankingIndexRequestWrapper{
 		RaidRankingIndexRequest: &protos.RaidRankingIndexRequest{},
 	}

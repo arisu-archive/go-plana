@@ -39,7 +39,7 @@ func (w AccountAuthRequestWrapper) Packet() *protos.RequestPacket {
 
 func (s *AccountService) Authenticate(
 	ctx context.Context,
-	credential UserSession,
+	credential *UserSession,
 	opts ...AccountAuthOption,
 ) (*protos.AccountAuthResponse, error) {
 	// Generate random bytes

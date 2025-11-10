@@ -87,14 +87,14 @@ type requestParams struct {
 	apiType  apiType
 	protocol protos.Protocol
 	body     RequestPacketReader
-	session  UserSession
+	session  *UserSession
 }
 
 // Request represents an API request.
 type Request struct {
 	*http.Request
 	apiType    apiType
-	SessionKey UserSession
+	SessionKey *UserSession
 }
 
 // Response represents an API response.
@@ -131,7 +131,7 @@ func (*DefaultJSONSerializer) DeserializeReader(r io.Reader, v any) error {
 
 type RequestBuilder struct {
 	client  *Client
-	session UserSession
+	session *UserSession
 }
 
 func (c *Client) R() *RequestBuilder {
@@ -140,7 +140,7 @@ func (c *Client) R() *RequestBuilder {
 	}
 }
 
-func (rb *RequestBuilder) WithSession(session UserSession) *RequestBuilder {
+func (rb *RequestBuilder) WithSession(session *UserSession) *RequestBuilder {
 	rb.session = session
 	return rb
 }
@@ -228,6 +228,9 @@ func (c *Client) Do(ctx context.Context, req *Request, packet any) (*Response, e
 		return nil, err
 	}
 	defer resp.Body.Close()
+	if req.SessionKey != nil {
+		req.SessionKey.RequestCount++
+	}
 
 	var responseData ResponseData
 	response, err := io.ReadAll(resp.Body)

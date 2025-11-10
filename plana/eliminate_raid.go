@@ -27,7 +27,7 @@ type EliminateRaidOpponentListRequestBuilder struct {
 
 func (b EliminateRaidOpponentListRequestBuilder) Search(
 	ctx context.Context,
-	session UserSession,
+	session *UserSession,
 	opts ...EliminateRaidOpponentListOption,
 ) (*protos.EliminateRaidOpponentListResponse, error) {
 	return b.service.GetOpponents(ctx, session, b.payload, opts...)
@@ -59,7 +59,7 @@ func (s *EliminateRaidService) WithOpponentScore(score int64) EliminateRaidOppon
 
 func (s *EliminateRaidService) GetOpponents(
 	ctx context.Context,
-	session UserSession,
+	session *UserSession,
 	payload EliminateRaidOpponentListRequestWrapper,
 	opts ...EliminateRaidOpponentListOption,
 ) (*protos.EliminateRaidOpponentListResponse, error) {
@@ -86,7 +86,7 @@ func (w EliminateRaidLobbyRequestWrapper) Packet() *protos.RequestPacket {
 	return &w.RequestPacket
 }
 
-func (s *EliminateRaidService) GetLobby(ctx context.Context, session UserSession) (*protos.EliminateRaidLobbyResponse, error) {
+func (s *EliminateRaidService) GetLobby(ctx context.Context, session *UserSession) (*protos.EliminateRaidLobbyResponse, error) {
 	param := EliminateRaidLobbyRequestWrapper{
 		EliminateRaidLobbyRequest: &protos.EliminateRaidLobbyRequest{},
 	}
@@ -110,7 +110,7 @@ func (w EliminateRaidGetBestTeamRequestWrapper) Packet() *protos.RequestPacket {
 	return &w.RequestPacket
 }
 
-func (s *EliminateRaidService) GetBestTeam(ctx context.Context, session UserSession, accountID int64) (*protos.EliminateRaidGetBestTeamResponse, error) {
+func (s *EliminateRaidService) GetBestTeam(ctx context.Context, session *UserSession, accountID int64) (*protos.EliminateRaidGetBestTeamResponse, error) {
 	w := EliminateRaidGetBestTeamRequestWrapper{
 		EliminateRaidGetBestTeamRequest: &protos.EliminateRaidGetBestTeamRequest{
 			SearchAccountId: accountID,
@@ -136,7 +136,7 @@ func (w EliminateRaidRankingIndexRequestWrapper) Packet() *protos.RequestPacket 
 	return &w.RequestPacket
 }
 
-func (s *EliminateRaidService) GetRankingIndex(ctx context.Context, session UserSession) (*protos.EliminateRaidRankingIndexResponse, error) {
+func (s *EliminateRaidService) GetRankingIndex(ctx context.Context, session *UserSession) (*protos.EliminateRaidRankingIndexResponse, error) {
 	param := EliminateRaidRankingIndexRequestWrapper{
 		EliminateRaidRankingIndexRequest: &protos.EliminateRaidRankingIndexRequest{},
 	}
