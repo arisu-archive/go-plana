@@ -75,11 +75,11 @@ func (s *ClanService) submitSearch(
 	return result, nil
 }
 
-type ClanGetMyClanInfoRequestWrapper struct {
+type ClanMemberListRequestWrapper struct {
 	*protos.ClanMemberListRequest
 }
 
-func (w ClanGetMyClanInfoRequestWrapper) Packet() *protos.RequestPacket {
+func (w ClanMemberListRequestWrapper) Packet() *protos.RequestPacket {
 	return &w.RequestPacket
 }
 
@@ -88,7 +88,7 @@ func (s *ClanService) GetMembers(
 	session *UserSession,
 	clanID int64,
 ) (*protos.ClanMemberListResponse, error) {
-	req, err := s.client.R().WithSession(session).Game(ctx, protos.Protocol_Clan_MemberList, ClanGetMyClanInfoRequestWrapper{
+	req, err := s.client.R().WithSession(session).Game(ctx, protos.Protocol_Clan_MemberList, ClanMemberListRequestWrapper{
 		ClanMemberListRequest: &protos.ClanMemberListRequest{
 			ClanDBId: clanID,
 		},
