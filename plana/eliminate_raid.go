@@ -25,6 +25,11 @@ type EliminateRaidOpponentListRequestBuilder struct {
 	payload EliminateRaidOpponentListRequestWrapper
 }
 
+func (b EliminateRaidOpponentListRequestBuilder) WithBossGroup(bossGroup int32) EliminateRaidOpponentListRequestBuilder {
+	b.payload.BossGroupIndex = &bossGroup
+	return b
+}
+
 func (b EliminateRaidOpponentListRequestBuilder) Search(
 	ctx context.Context,
 	session *UserSession,
