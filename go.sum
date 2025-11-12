@@ -8,6 +8,8 @@ github.com/arisu-archive/plana-protos v0.0.0-20251029183338-e067a237d476 h1:Ak0X
 github.com/arisu-archive/plana-protos v0.0.0-20251029183338-e067a237d476/go.mod h1:TxCCjAEEvRcpdg9gmS8ABI+AnXiAojiy27xkjgPnsv4=
 github.com/arisu-archive/plana-protos v0.0.0-20251109135720-0ad4ba91c729 h1:NOQOlW5Y0HQihvWBONZOPcuQI3ytbVogiom6E6G+QOk=
 github.com/arisu-archive/plana-protos v0.0.0-20251109135720-0ad4ba91c729/go.mod h1:TxCCjAEEvRcpdg9gmS8ABI+AnXiAojiy27xkjgPnsv4=
+github.com/arisu-archive/plana-protos v0.0.0-20251112123953-4dfcf0ee4f06 h1:Ie8reOQqRaPAF7t7HSC3QZs4y524hglFSkb7eXc2lqI=
+github.com/arisu-archive/plana-protos v0.0.0-20251112123953-4dfcf0ee4f06/go.mod h1:YUyB0cndhru9urjQii2+Am+e2DUZvOR32KMrrqmfoOc=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/gkampitakis/ciinfo v0.3.2 h1:JcuOPk8ZU7nZQjdUhctuhQofk7BGHuIy0c9Ez8BNhXs=
