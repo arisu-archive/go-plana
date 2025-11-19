@@ -207,6 +207,7 @@ func (c *Client) initialize() *Client {
 		c.JSONSerializer = &DefaultJSONSerializer{}
 	}
 	c.processor = &Processor{
+		PublicKey:      c.publicKey,
 		XorKey:         c.XorEncryptionKey,
 		JSONSerializer: c.JSONSerializer,
 	}
@@ -334,7 +335,8 @@ func (c *Client) newRequest(
 	opts = append(opts, withSessionKey(params.session))
 	c.populate(params.body.Packet(), params.protocol, opts...)
 	// Process payload through crypto pipeline
-	payload, err := c.processor.Process(params.body, params.session)
+	// For now, we assume gateway bypass is false
+	payload, err := c.processor.Process(params.body, params.session, false)
 	if err != nil {
 		return nil, err
 	}

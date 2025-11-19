@@ -3,7 +3,6 @@ package plana
 import (
 	"context"
 	"crypto/rand"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 
@@ -100,10 +99,8 @@ func (s *AccountService) CheckYostar(
 ) (*protos.AccountCheckYostarResponse, error) {
 	param := AccountCheckYostarRequestWrapper{
 		&protos.AccountCheckYostarRequest{
-			EnterTicket:        ops.EnterTicket,
-			Cookie:             ops.Cookie,
-			ClientGeneratedKey: base64.StdEncoding.EncodeToString(rsaEncrypt(ops.KeyBundle.Key, s.client.publicKey)),
-			ClientGeneratedIV:  base64.StdEncoding.EncodeToString(rsaEncrypt(ops.KeyBundle.IV, s.client.publicKey)),
+			EnterTicket: ops.EnterTicket,
+			Cookie:      ops.Cookie,
 		},
 	}
 	req, err := s.client.R().Game(ctx, protos.Protocol_Account_CheckYostar, param)
