@@ -60,7 +60,7 @@ func (p QueuingGetTicketRequestWrapper) Packet() *protos.RequestPacket {
 	return &p.RequestPacket
 }
 
-func (s *QueuingService) GetTicket(ctx context.Context, data GetTicketOptions) (*protos.QueuingGetTicketResponse, error) {
+func (s *QueuingService) GetTicket(ctx context.Context, session *UserSession, data GetTicketOptions) (*protos.QueuingGetTicketResponse, error) {
 	param := QueuingGetTicketRequestWrapper{
 		QueuingGetTicketRequest: &protos.QueuingGetTicketRequest{
 			YostarUID:     data.YostarUID,
@@ -69,7 +69,8 @@ func (s *QueuingService) GetTicket(ctx context.Context, data GetTicketOptions) (
 			OSType:        defaultFullOSType,
 		},
 	}
-	req, err := s.client.R().Gateway(
+	// It requires a session for this request
+	req, err := s.client.R().WithSession(session).Gateway(
 		ctx,
 		protos.Protocol_Queuing_GetTicket,
 		param,
