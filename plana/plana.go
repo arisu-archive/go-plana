@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -88,6 +89,7 @@ type requestParams struct {
 	protocol protos.Protocol
 	body     RequestPacketReader
 	session  *UserSession
+	headers  map[string]string
 }
 
 // Request represents an API request.
@@ -132,16 +134,36 @@ func (*DefaultJSONSerializer) DeserializeReader(r io.Reader, v any) error {
 type RequestBuilder struct {
 	client  *Client
 	session *UserSession
+	headers map[string]string
 }
 
 func (c *Client) R() *RequestBuilder {
 	return &RequestBuilder{
-		client: c,
+		client:  c,
+		headers: make(map[string]string),
 	}
 }
 
 func (rb *RequestBuilder) WithSession(session *UserSession) *RequestBuilder {
 	rb.session = session
+	return rb
+}
+
+// WithHeader adds a custom header to the request.
+func (rb *RequestBuilder) WithHeader(key, value string) *RequestBuilder {
+	rb.headers[key] = value
+	return rb
+}
+
+// WithHeaders adds multiple custom headers to the request.
+func (rb *RequestBuilder) WithHeaders(headers map[string]string) *RequestBuilder {
+	maps.Copy(rb.headers, headers)
+	return rb
+}
+
+// WithAuthToken sets the Authorization header with a Bearer token.
+func (rb *RequestBuilder) WithAuthToken(token string) *RequestBuilder {
+	rb.headers["Authorization"] = "Bearer " + token
 	return rb
 }
 
@@ -156,6 +178,7 @@ func (rb *RequestBuilder) Gateway(
 		protocol: protocol,
 		body:     body,
 		session:  rb.session,
+		headers:  rb.headers,
 	}, opts...)
 }
 
@@ -170,6 +193,7 @@ func (rb *RequestBuilder) Game(
 		protocol: protocol,
 		body:     body,
 		session:  rb.session,
+		headers:  rb.headers,
 	}, opts...)
 }
 
@@ -285,7 +309,7 @@ func (c *Client) handleErrorPacket(responseData ResponseData) (*protos.ErrorPack
 }
 
 func (c *Client) bareDo(ctx context.Context, req *Request) (*Response, error) {
-	resp, err := c.client.Do(req.WithContext(ctx))
+	resp, err := c.client.Do(req.WithContext(ctx)) //nolint:bodyclose // response body will be handled by caller
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
@@ -356,7 +380,7 @@ func (c *Client) newRequest(
 	}
 
 	// Build HTTP request
-	req, err := c.buildHTTPRequest(params.apiType, buf, contentType)
+	req, err := c.buildHTTPRequest(params.apiType, buf, contentType, params.headers)
 	if err != nil {
 		return nil, err
 	}
@@ -369,7 +393,7 @@ func (c *Client) newRequest(
 }
 
 // buildHTTPRequest creates the HTTP request with proper headers.
-func (c *Client) buildHTTPRequest(apiType apiType, body *bytes.Buffer, contentType string) (*http.Request, error) {
+func (c *Client) buildHTTPRequest(apiType apiType, body *bytes.Buffer, contentType string, customHeaders map[string]string) (*http.Request, error) {
 	u, err := c.getBaseURL(apiType).Parse("/api/gateway")
 	if err != nil {
 		return nil, fmt.Errorf("URL parse failed: %w", err)
@@ -384,6 +408,11 @@ func (c *Client) buildHTTPRequest(apiType apiType, body *bytes.Buffer, contentTy
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("mx", "2") //nolint:canonicalheader // required by API
 	req.Header.Set("Accept-Encoding", "identity")
+
+	// Apply custom headers
+	for key, value := range customHeaders {
+		req.Header.Set(key, value)
+	}
 
 	return req, nil
 }
