@@ -6,26 +6,26 @@ import (
 	"github.com/arisu-archive/plana-protos/protos"
 )
 
-type ErrInvalidSession struct {
+type InvalidSessionError struct {
 	msg   string
 	code  protos.WebAPIErrorCode
 	inner *ErrWebAPIError
 }
 
-func (e ErrInvalidSession) Error() string {
+func (e InvalidSessionError) Error() string {
 	return e.msg
 }
 
-func (e ErrInvalidSession) Code() protos.WebAPIErrorCode {
+func (e InvalidSessionError) Code() protos.WebAPIErrorCode {
 	return e.code
 }
 
-func (e ErrInvalidSession) Unwrap() error {
+func (e InvalidSessionError) Unwrap() error {
 	return e.inner
 }
 
-func NewInvalidSessionError(message string, inner *ErrWebAPIError) *ErrInvalidSession {
-	return &ErrInvalidSession{
+func NewInvalidSessionError(message string, inner *ErrWebAPIError) *InvalidSessionError {
+	return &InvalidSessionError{
 		msg:   message,
 		code:  inner.Code(),
 		inner: inner,

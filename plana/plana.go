@@ -276,7 +276,7 @@ func (c *Client) Do(ctx context.Context, req *Request, packet any) (*Response, e
 		if err != nil {
 			return nil, err
 		}
-		return c.handleKnownErrorPacket(errPacket)
+		return nil, c.handleKnownErrorPacket(errPacket)
 	}
 	if err := c.handleResponsePacket(responseData, packet); err != nil {
 		return nil, err
@@ -291,13 +291,17 @@ func (c *Client) handleResponsePacket(responseData ResponseData, packet any) err
 	return nil
 }
 
-func (*Client) handleKnownErrorPacket(errPacket *protos.ErrorPacket) (*Response, error) {
+func (*Client) handleKnownErrorPacket(errPacket *protos.ErrorPacket) error {
 	err := NewWebAPIError(errPacket)
 	switch err.Code() {
-	case protos.WebAPIErrorCode_InvalidSession:
-		return nil, NewInvalidSessionError("invalid session", err)
+	case protos.WebAPIErrorCode_InvalidSession, protos.WebAPIErrorCode_SessionNotFound,
+		protos.WebAPIErrorCode_SessionParseFail, protos.WebAPIErrorCode_SessionInvalidInput,
+		protos.WebAPIErrorCode_SessionNotAuth, protos.WebAPIErrorCode_SessionDuplicateLogin,
+		protos.WebAPIErrorCode_SessionTimeOver, protos.WebAPIErrorCode_SessionInvalidVersion,
+		protos.WebAPIErrorCode_SessionChangeDate:
+		return NewInvalidSessionError("invalid session", err)
 	}
-	return nil, err
+	return err
 }
 
 func (c *Client) handleErrorPacket(responseData ResponseData) (*protos.ErrorPacket, error) {

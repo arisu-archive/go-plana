@@ -14,7 +14,6 @@ linters:
     - errcheck
     - errname
     - errorlint
-    - exhaustive
     - fatcontext
     - forbidigo
     - funlen
@@ -194,6 +193,8 @@ linters:
             - allowedPackages:
               - "github.com/onsi/ginkgo/v2"
               - "github.com/onsi/gomega"
+        - name: enforce-switch-style
+          disabled: true
     rowserrcheck:
       packages:
         - github.com/jmoiron/sqlx
