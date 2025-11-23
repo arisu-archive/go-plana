@@ -25,8 +25,8 @@ func (p QueuingGetCryptoKeysRequestWrapper) Packet() *protos.RequestPacket {
 func (s *QueuingService) GetCryptoKeys(ctx context.Context, data GetCryptoKeysOptions) (*protos.QueuingGetCryptoKeysResponse, error) {
 	param := QueuingGetCryptoKeysRequestWrapper{
 		QueuingGetCryptoKeysRequest: &protos.QueuingGetCryptoKeysRequest{
-			ClientGeneratedKey: base64.StdEncoding.EncodeToString(rsaEncrypt(data.KeyBundle.Key, s.client.publicKey)),
-			ClientGeneratedIV:  base64.StdEncoding.EncodeToString(rsaEncrypt(data.KeyBundle.IV, s.client.publicKey)),
+			ClientGeneratedKey: base64.StdEncoding.EncodeToString(data.KeyBundle.Key),
+			ClientGeneratedIV:  base64.StdEncoding.EncodeToString(data.KeyBundle.IV),
 		},
 	}
 	req, err := s.client.R().Gateway(

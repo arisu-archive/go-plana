@@ -329,7 +329,7 @@ func (c *Client) bareDo(ctx context.Context, req *Request) (*Response, error) {
 
 	// Determine if response should be decrypted based on session keys
 	// If we have server keys, we expect encrypted content that needs decryption
-	if len(req.SessionKey.ServerKeyBundle.Key) > 0 && len(req.SessionKey.ServerKeyBundle.IV) > 0 {
+	if req.SessionKey != nil && len(req.SessionKey.ServerKeyBundle.Key) > 0 && len(req.SessionKey.ServerKeyBundle.IV) > 0 {
 		// Decrypt the response
 		ciphertext, err := io.ReadAll(resp.Body)
 		if err != nil {
