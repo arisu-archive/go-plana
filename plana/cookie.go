@@ -9,28 +9,39 @@ import (
 	"net/http"
 )
 
-type GetCookieRequest struct {
-	Seed string `json:"seed"`
-}
-
 type CookieService service
 
 var ErrCookieURLNotConfigured = errors.New("GetCookieURL is not configured in the client")
 
-func (c *CookieService) GetCookie(ctx context.Context, serverSeed string) (string, error) {
+type GetCookieOptions struct {
+	UserID    string `json:"user_id"`
+	Seed      string `json:"seed"`
+	AuthToken string `json:"-"`
+}
+
+func (c *CookieService) GetCookie(ctx context.Context, opts GetCookieOptions) (string, error) {
 	if c.client.GetCookieURL == nil {
 		return "", ErrCookieURLNotConfigured
 	}
 
-	data := GetCookieRequest{Seed: serverSeed}
-	payload, err := c.client.JSONSerializer.Serialize(data, "")
+	u, err := c.client.GetCookieURL.Parse("/cookie")
+	if err != nil {
+		return "", fmt.Errorf("failed to parse cookie URL: %w", err)
+	}
+
+	payload, err := c.client.JSONSerializer.Serialize(opts, "")
 	if err != nil {
 		return "", fmt.Errorf("failed to serialize protocol encoder request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.client.GetCookieURL.String(), bytes.NewBuffer(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewBuffer(payload))
 	if err != nil {
 		return "", fmt.Errorf("failed to create protocol encoder request: %w", err)
+	}
+
+	// Add authentication header if provided
+	if opts.AuthToken != "" {
+		req.Header.Set("Authorization", "Bearer "+opts.AuthToken)
 	}
 
 	resp, err := c.client.client.Do(req)
