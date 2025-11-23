@@ -150,7 +150,7 @@ func (p *Processor) Process(body any, key *UserSession, isGatewayBypassed bool) 
 	}
 
 	// Step 2: Optional AES encryption
-	if len(key.ClientKeyBundle.Key) > 0 && len(key.ClientKeyBundle.IV) > 0 {
+	if key != nil && len(key.ClientKeyBundle.Key) > 0 && len(key.ClientKeyBundle.IV) > 0 {
 		payload, err = encryptPayload(payload, key.ClientKeyBundle.Key, key.ClientKeyBundle.IV)
 		if err != nil {
 			return nil, fmt.Errorf("encryption failed: %w", err)
