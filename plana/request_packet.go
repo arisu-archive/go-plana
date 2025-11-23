@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha1" // #nosec G505 -- RSA OAEP with SHA-1 is used by the protocol
 	"fmt"
+	"reflect"
 
 	"github.com/arisu-archive/plana-protos/protos"
 )
@@ -17,6 +18,10 @@ type PacketPopulatorOption func(*protos.RequestPacket)
 
 func withSessionKey(session *UserSession) PacketPopulatorOption {
 	return func(packet *protos.RequestPacket) {
+		// Skip if session key is empty
+		if session == nil || reflect.ValueOf(session.SessionKey).IsZero() {
+			return
+		}
 		packet.SessionKey = session.SessionKey
 		packet.AccountId = session.AccountServerId
 		packet.Hash = session.RequestCount | (int64(packet.Protocol) << 32)
