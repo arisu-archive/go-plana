@@ -2,7 +2,7 @@ module github.com/arisu-archive/go-plana
 
 go 1.24.3
 
-toolchain go1.25.4
+toolchain go1.25.5
 
 require (
 	github.com/arisu-archive/plana-flatbuffers v0.7.0
