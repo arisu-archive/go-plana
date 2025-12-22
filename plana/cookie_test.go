@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -21,7 +20,7 @@ var _ = Describe("CookieService", func() {
 				Expect(r.Method).To(Equal(http.MethodPost))
 				Expect(r.URL.Path).To(Equal("/cookie"))
 				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(`{"success":true,"cookie":"abc","timestamp":"2025-12-22T00:00:00Z"}`))
+				_, _ = w.Write([]byte(`{"success":true,"cookie":"abc","timestamp":1766414912.051554}`))
 			}))
 			DeferCleanup(ts.Close)
 
@@ -36,13 +35,13 @@ var _ = Describe("CookieService", func() {
 			Expect(out).NotTo(BeNil())
 			Expect(out.Success).To(BeTrue())
 			Expect(out.Cookie).To(Equal("abc"))
-			Expect(out.Timestamp.Equal(time.Date(2025, 12, 22, 0, 0, 0, 0, time.UTC))).To(BeTrue())
+			Expect(out.Timestamp).To(Equal(1766414912.051554))
 		})
 
 		It("adds Authorization header when token provided", func() {
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				Expect(r.Header.Get("Authorization")).To(Equal("Bearer token123"))
-				_, _ = w.Write([]byte(`{"success":true,"cookie":"abc","timestamp":"2025-12-22T00:00:00Z"}`))
+				_, _ = w.Write([]byte(`{"success":true,"cookie":"abc","timestamp":1766414912.051554}`))
 			}))
 			DeferCleanup(ts.Close)
 

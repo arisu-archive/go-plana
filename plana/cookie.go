@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 )
 
 type CookieService service
@@ -21,9 +20,9 @@ type GetCookieOptions struct {
 }
 
 type Cookie struct {
-	Success   bool      `json:"success"`
-	Cookie    string    `json:"cookie"`
-	Timestamp time.Time `json:"timestamp"`
+	Success   bool    `json:"success"`
+	Cookie    string  `json:"cookie"`
+	Timestamp float64 `json:"timestamp"`
 }
 
 func (c *CookieService) GetCookie(ctx context.Context, opts GetCookieOptions) (*Cookie, error) {
