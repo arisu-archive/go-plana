@@ -156,7 +156,10 @@ func (p *Processor) Process(body any, key *UserSession, isGatewayBypassed bool) 
 			return nil, fmt.Errorf("encryption failed: %w", err)
 		}
 	} else if !isGatewayBypassed {
-		payload = rsaEncrypt(payload, p.PublicKey)
+		// If no public key is configured, we can't RSA-encrypt; leave payload as-is.
+		if p.PublicKey != nil {
+			payload = rsaEncrypt(payload, p.PublicKey)
+		}
 	}
 	payloadLength := uint32(len(payload)) //nolint:gosec // This is how the protocol works
 

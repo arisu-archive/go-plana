@@ -89,8 +89,9 @@ var _ = Describe("Processor", func() {
 		})
 
 		It("should process with encryption", func() {
-			aesKey := []byte{}
-			iv := []byte{}
+			// AES-128 key + 16-byte IV for CBC.
+			aesKey := []byte("0123456789abcdef")
+			iv := []byte("abcdef0123456789")
 
 			body := map[string]any{"key": "value"}
 			key := plana.UserSession{
