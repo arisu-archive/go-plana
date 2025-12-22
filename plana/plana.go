@@ -20,11 +20,12 @@ import (
 )
 
 const (
-	Version           = "1.82.378581"
-	defaultUserAgent  = "BestHTTP/2 v2.4.0"
-	defaultXorKey     = 0xD9
-	defaultGatewayURL = "https://prod-gateway.bluearchiveyostar.com:5100/"
-	defaultGameURL    = "https://prod-game.bluearchiveyostar.com:5000/"
+	Version              = "1.82.390231"
+	defaultBundleVersion = "qtmrfsa5k8"
+	defaultUserAgent     = "BestHTTP/2 v2.4.0"
+	defaultXorKey        = 0xD9
+	defaultGatewayURL    = "https://prod-gateway.bluearchiveyostar.com:5100/"
+	defaultGameURL       = "https://prod-game.bluearchiveyostar.com:5000/"
 )
 
 type Client struct {
@@ -37,7 +38,8 @@ type Client struct {
 	JSONSerializer JSONSerializer
 
 	// User agent used when communicating with the game API.
-	UserAgent string
+	BundleVersion string
+	UserAgent     string
 
 	ProtocolEncoderURL *url.URL // URL of the protocol encoder service.
 	GetCookieURL       *url.URL // URL for getting cookies.
@@ -223,6 +225,9 @@ func (c *Client) initialize() *Client {
 	}
 	if c.UserAgent == "" {
 		c.UserAgent = defaultUserAgent
+	}
+	if c.BundleVersion == "" {
+		c.BundleVersion = defaultBundleVersion
 	}
 	if c.XorEncryptionKey == 0 {
 		c.XorEncryptionKey = defaultXorKey
@@ -411,6 +416,7 @@ func (c *Client) buildHTTPRequest(apiType apiType, body *bytes.Buffer, contentTy
 	req.Header.Set("User-Agent", c.UserAgent)
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("mx", "2") //nolint:canonicalheader // required by API
+	req.Header.Set("Bundle-Version", c.BundleVersion)
 	req.Header.Set("Accept-Encoding", "identity")
 
 	// Apply custom headers

@@ -95,6 +95,7 @@ func (w AccountCheckYostarRequestWrapper) Packet() *protos.RequestPacket {
 
 func (s *AccountService) CheckYostar(
 	ctx context.Context,
+	session *UserSession,
 	ops YostarCheckOption,
 ) (*protos.AccountCheckYostarResponse, error) {
 	param := AccountCheckYostarRequestWrapper{
@@ -103,7 +104,7 @@ func (s *AccountService) CheckYostar(
 			Cookie:      ops.Cookie,
 		},
 	}
-	req, err := s.client.R().Game(ctx, protos.Protocol_Account_CheckYostar, param)
+	req, err := s.client.R().WithSession(session).Game(ctx, protos.Protocol_Account_CheckYostar, param)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create check yostar request: %w", err)
 	}
