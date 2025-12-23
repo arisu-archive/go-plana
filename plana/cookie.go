@@ -14,9 +14,8 @@ type CookieService service
 var ErrCookieURLNotConfigured = errors.New("GetCookieURL is not configured in the client")
 
 type GetCookieOptions struct {
-	UserID    string `json:"user_id"`
-	Seed      string `json:"seed"`
-	AuthToken string `json:"-"`
+	UserID string `json:"user_id"`
+	Seed   string `json:"seed"`
 }
 
 type Cookie struct {
@@ -47,8 +46,8 @@ func (c *CookieService) GetCookie(ctx context.Context, opts GetCookieOptions) (*
 
 	req.Header.Set("Content-Type", "application/json")
 	// Add authentication header if provided
-	if opts.AuthToken != "" {
-		req.Header.Set("Authorization", "Bearer "+opts.AuthToken)
+	if c.client.GetCookieToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.client.GetCookieToken)
 	}
 
 	resp, err := c.client.client.Do(req)

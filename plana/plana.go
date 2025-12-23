@@ -15,6 +15,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"sync"
 
 	"github.com/arisu-archive/plana-protos/protos"
 )
@@ -29,7 +30,8 @@ const (
 )
 
 type Client struct {
-	client *http.Client
+	clientMu sync.Mutex
+	client   *http.Client
 
 	// XorEncryptionKey is the byte used to XOR the payload before sending.
 	XorEncryptionKey byte
@@ -41,8 +43,11 @@ type Client struct {
 	BundleVersion string
 	UserAgent     string
 
-	ProtocolEncoderURL *url.URL // URL of the protocol encoder service.
-	GetCookieURL       *url.URL // URL for getting cookies.
+	ProtocolEncoderURL   *url.URL // URL of the protocol encoder service.
+	ProtocolEncoderToken string   // Token for authenticating protocol encoder requests.
+
+	GetCookieURL   *url.URL // URL for getting cookies.
+	GetCookieToken string   // Token for authenticating GetCookie requests.
 
 	// PublicKey is the RSA public key used for encrypting sensitive data.
 	publicKey *rsa.PublicKey
@@ -163,12 +168,6 @@ func (rb *RequestBuilder) WithHeaders(headers map[string]string) *RequestBuilder
 	return rb
 }
 
-// WithAuthToken sets the Authorization header with a Bearer token.
-func (rb *RequestBuilder) WithAuthToken(token string) *RequestBuilder {
-	rb.headers["Authorization"] = "Bearer " + token
-	return rb
-}
-
 func (rb *RequestBuilder) Gateway(
 	ctx context.Context,
 	protocol protos.Protocol,
@@ -201,17 +200,52 @@ func (rb *RequestBuilder) Game(
 
 // NewClient returns a new Arona API client. If a nil httpClient is
 // provided, a new http.Client will be used.
-func NewClient(protocolEncoderURL *url.URL, publicKey *rsa.PublicKey, httpClient *http.Client) *Client {
+func NewClient(publicKey *rsa.PublicKey, httpClient *http.Client) *Client {
 	if httpClient == nil {
 		httpClient = &http.Client{}
 	}
 	httpClient2 := *httpClient
 	c := &Client{
-		client:             &httpClient2,
-		ProtocolEncoderURL: protocolEncoderURL,
-		publicKey:          publicKey,
+		client:    &httpClient2,
+		publicKey: publicKey,
 	}
 	return c.initialize()
+}
+
+func (c *Client) copy() *Client {
+	c.clientMu.Lock()
+	clone := &Client{
+		client:               &http.Client{},
+		publicKey:            c.publicKey,
+		UserAgent:            c.UserAgent,
+		XorEncryptionKey:     c.XorEncryptionKey,
+		ProtocolEncoderURL:   c.ProtocolEncoderURL,
+		ProtocolEncoderToken: c.ProtocolEncoderToken,
+		JSONSerializer:       c.JSONSerializer,
+		GetCookieURL:         c.GetCookieURL,
+		GetCookieToken:       c.GetCookieToken,
+	}
+	c.clientMu.Unlock()
+	// Shallow copy is sufficient since fields are either value types or pointers
+	return clone
+}
+
+func (c *Client) WithCookie(jarURL *url.URL, token string) *Client {
+	// Copy a new Client to avoid modifying the original
+	c2 := c.copy()
+	defer c2.initialize()
+	c2.GetCookieURL = jarURL
+	c2.GetCookieToken = token
+	return c2
+}
+
+func (c *Client) WithEncoder(encoderURL *url.URL, token string) *Client {
+	// Copy a new Client to avoid modifying the original
+	c2 := c.copy()
+	defer c2.initialize()
+	c2.ProtocolEncoderURL = encoderURL
+	c2.ProtocolEncoderToken = token
+	return c2
 }
 
 // initialize sets up the client with default values.

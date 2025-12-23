@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -27,7 +26,7 @@ var _ = Describe("CookieService", func() {
 			baseURL, err := url.Parse(ts.URL)
 			Expect(err).NotTo(HaveOccurred())
 
-			client := plana.NewClient(nil, nil, ts.Client())
+			client := plana.NewClient(nil, ts.Client())
 			client.GetCookieURL = baseURL
 
 			out, err := client.Cookie.GetCookie(context.Background(), plana.GetCookieOptions{UserID: "u", Seed: "s"})
@@ -48,10 +47,11 @@ var _ = Describe("CookieService", func() {
 			baseURL, err := url.Parse(ts.URL)
 			Expect(err).NotTo(HaveOccurred())
 
-			client := plana.NewClient(nil, nil, ts.Client())
+			client := plana.NewClient(nil, ts.Client())
 			client.GetCookieURL = baseURL
+			client.GetCookieToken = "token123"
 
-			_, err = client.Cookie.GetCookie(context.Background(), plana.GetCookieOptions{UserID: "u", Seed: "s", AuthToken: strings.Repeat("token", 1) + "123"})
+			_, err = client.Cookie.GetCookie(context.Background(), plana.GetCookieOptions{UserID: "u", Seed: "s"})
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
