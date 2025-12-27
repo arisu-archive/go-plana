@@ -25,11 +25,11 @@ type Cookie struct {
 }
 
 func (c *CookieService) GetCookie(ctx context.Context, opts GetCookieOptions) (*Cookie, error) {
-	if c.client.GetCookieURL == nil {
+	if c.client.CookieJarConfig == nil {
 		return nil, ErrCookieURLNotConfigured
 	}
 
-	u, err := c.client.GetCookieURL.Parse("/cookie")
+	u, err := c.client.CookieJarConfig.URL.Parse("/cookie")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse cookie URL: %w", err)
 	}
@@ -46,8 +46,9 @@ func (c *CookieService) GetCookie(ctx context.Context, opts GetCookieOptions) (*
 
 	req.Header.Set("Content-Type", "application/json")
 	// Add authentication header if provided
-	if c.client.GetCookieToken != "" {
-		req.Header.Set("Authorization", "Bearer "+c.client.GetCookieToken)
+	if c.client.CookieJarConfig.ClientID != "" && c.client.CookieJarConfig.ClientSecret != "" {
+		req.Header.Set("Cf-Access-Client-Id", c.client.CookieJarConfig.ClientID)
+		req.Header.Set("Cf-Access-Client-Secret", c.client.CookieJarConfig.ClientSecret)
 	}
 
 	resp, err := c.client.client.Do(req)

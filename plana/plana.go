@@ -43,11 +43,8 @@ type Client struct {
 	BundleVersion string
 	UserAgent     string
 
-	ProtocolEncoderURL   *url.URL // URL of the protocol encoder service.
-	ProtocolEncoderToken string   // Token for authenticating protocol encoder requests.
-
-	GetCookieURL   *url.URL // URL for getting cookies.
-	GetCookieToken string   // Token for authenticating GetCookie requests.
+	ProtocolEncoderConfig *EncoderConfig   // Configuration for the protocol encoder service.
+	CookieJarConfig       *CookieJarConfig // Configuration for the cookie jar service.
 
 	// PublicKey is the RSA public key used for encrypting sensitive data.
 	publicKey *rsa.PublicKey
@@ -215,36 +212,44 @@ func NewClient(publicKey *rsa.PublicKey, httpClient *http.Client) *Client {
 func (c *Client) copy() *Client {
 	c.clientMu.Lock()
 	clone := &Client{
-		client:               &http.Client{},
-		publicKey:            c.publicKey,
-		UserAgent:            c.UserAgent,
-		XorEncryptionKey:     c.XorEncryptionKey,
-		ProtocolEncoderURL:   c.ProtocolEncoderURL,
-		ProtocolEncoderToken: c.ProtocolEncoderToken,
-		JSONSerializer:       c.JSONSerializer,
-		GetCookieURL:         c.GetCookieURL,
-		GetCookieToken:       c.GetCookieToken,
+		client:                &http.Client{},
+		publicKey:             c.publicKey,
+		UserAgent:             c.UserAgent,
+		XorEncryptionKey:      c.XorEncryptionKey,
+		ProtocolEncoderConfig: c.ProtocolEncoderConfig,
+		CookieJarConfig:       c.CookieJarConfig,
+		JSONSerializer:        c.JSONSerializer,
 	}
 	c.clientMu.Unlock()
 	// Shallow copy is sufficient since fields are either value types or pointers
 	return clone
 }
 
-func (c *Client) WithCookie(jarURL *url.URL, token string) *Client {
+type CookieJarConfig struct {
+	URL          *url.URL
+	ClientID     string
+	ClientSecret string
+}
+
+func (c *Client) WithCookie(jar *CookieJarConfig) *Client {
 	// Copy a new Client to avoid modifying the original
 	c2 := c.copy()
 	defer c2.initialize()
-	c2.GetCookieURL = jarURL
-	c2.GetCookieToken = token
+	c2.CookieJarConfig = jar
 	return c2
 }
 
-func (c *Client) WithEncoder(encoderURL *url.URL, token string) *Client {
+type EncoderConfig struct {
+	URL          *url.URL
+	ClientID     string
+	ClientSecret string
+}
+
+func (c *Client) WithEncoder(cfg *EncoderConfig) *Client {
 	// Copy a new Client to avoid modifying the original
 	c2 := c.copy()
 	defer c2.initialize()
-	c2.ProtocolEncoderURL = encoderURL
-	c2.ProtocolEncoderToken = token
+	c2.ProtocolEncoderConfig = cfg
 	return c2
 }
 

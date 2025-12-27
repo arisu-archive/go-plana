@@ -27,7 +27,9 @@ var _ = Describe("CookieService", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			client := plana.NewClient(nil, ts.Client())
-			client.GetCookieURL = baseURL
+			client.CookieJarConfig = &plana.CookieJarConfig{
+				URL: baseURL,
+			}
 
 			out, err := client.Cookie.GetCookie(context.Background(), plana.GetCookieOptions{UserID: "u", Seed: "s"})
 			Expect(err).NotTo(HaveOccurred())
@@ -39,7 +41,8 @@ var _ = Describe("CookieService", func() {
 
 		It("adds Authorization header when token provided", func() {
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				Expect(r.Header.Get("Authorization")).To(Equal("Bearer token123"))
+				Expect(r.Header.Get("Cf-Access-Client-Id")).To(Equal("id"))
+				Expect(r.Header.Get("Cf-Access-Client-Secret")).To(Equal("secret"))
 				_, _ = w.Write([]byte(`{"success":true,"cookie":"abc","timestamp":1766414912.051554}`))
 			}))
 			DeferCleanup(ts.Close)
@@ -48,8 +51,11 @@ var _ = Describe("CookieService", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			client := plana.NewClient(nil, ts.Client())
-			client.GetCookieURL = baseURL
-			client.GetCookieToken = "token123"
+			client.CookieJarConfig = &plana.CookieJarConfig{
+				URL:          baseURL,
+				ClientID:     "id",
+				ClientSecret: "secret",
+			}
 
 			_, err = client.Cookie.GetCookie(context.Background(), plana.GetCookieOptions{UserID: "u", Seed: "s"})
 			Expect(err).NotTo(HaveOccurred())
