@@ -5,7 +5,7 @@ go 1.24.3
 toolchain go1.25.5
 
 require (
-	github.com/arisu-archive/plana-flatbuffers v0.7.0
+	github.com/arisu-archive/plana-flatbuffers v0.8.0
 	github.com/arisu-archive/plana-protos v1.0.0
 	github.com/google/uuid v1.6.0
 	github.com/onsi/ginkgo/v2 v2.27.3
@@ -14,7 +14,7 @@ require (
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
-	github.com/arisu-archive/bluearchive-fbs-utils v0.0.0-20251110184023-ba9536ab2fc6 // indirect
+	github.com/arisu-archive/bluearchive-fbs-utils v0.0.0-20251204154751-651482551f83 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/flatbuffers v25.9.23+incompatible // indirect
