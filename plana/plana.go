@@ -211,14 +211,23 @@ func NewClient(publicKey *rsa.PublicKey, httpClient *http.Client) *Client {
 
 func (c *Client) copy() *Client {
 	c.clientMu.Lock()
+	// Copy the underlying http.Client so derived clients keep the same
+	// configuration (Transport, timeouts, cookie jar, redirect policy, etc.).
+	// Note: this is a shallow copy, which is the recommended approach for
+	// http.Client. The Transport (and any custom RoundTripper) is intentionally
+	// shared across clones.
+	httpClientClone := *c.client
 	clone := &Client{
-		client:                &http.Client{},
+		client:                &httpClientClone,
 		publicKey:             c.publicKey,
 		UserAgent:             c.UserAgent,
+		BundleVersion:         c.BundleVersion,
 		XorEncryptionKey:      c.XorEncryptionKey,
 		ProtocolEncoderConfig: c.ProtocolEncoderConfig,
 		CookieJarConfig:       c.CookieJarConfig,
 		JSONSerializer:        c.JSONSerializer,
+		GatewayURL:            c.GatewayURL,
+		GameURL:               c.GameURL,
 	}
 	c.clientMu.Unlock()
 	// Shallow copy is sufficient since fields are either value types or pointers
