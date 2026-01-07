@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rsa"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -57,6 +58,7 @@ func computeHash(data []byte, iv uint32) uint32 {
 
 // Processor handles the cryptographic processing of request payloads.
 type Processor struct {
+	PublicKey      *rsa.PublicKey
 	XorKey         byte
 	JSONSerializer JSONSerializer
 }
@@ -140,7 +142,7 @@ func compressPayload(payload []byte) ([]byte, error) {
 }
 
 // Process transforms the body through the full cryptographic pipeline.
-func (p *Processor) Process(body any, key UserSession) ([]byte, error) {
+func (p *Processor) Process(body any, key *UserSession, isGatewayBypassed bool) ([]byte, error) {
 	// Step 1: Serialize to JSON
 	payload, err := p.JSONSerializer.Serialize(body, "")
 	if err != nil {
@@ -148,10 +150,15 @@ func (p *Processor) Process(body any, key UserSession) ([]byte, error) {
 	}
 
 	// Step 2: Optional AES encryption
-	if len(key.ClientKeyBundle.Key) > 0 && len(key.ClientKeyBundle.IV) > 0 {
+	if key != nil && len(key.ClientKeyBundle.Key) > 0 && len(key.ClientKeyBundle.IV) > 0 {
 		payload, err = encryptPayload(payload, key.ClientKeyBundle.Key, key.ClientKeyBundle.IV)
 		if err != nil {
 			return nil, fmt.Errorf("encryption failed: %w", err)
+		}
+	} else if !isGatewayBypassed {
+		// If no public key is configured, we can't RSA-encrypt; leave payload as-is.
+		if p.PublicKey != nil {
+			payload = rsaEncrypt(payload, p.PublicKey)
 		}
 	}
 	payloadLength := uint32(len(payload)) //nolint:gosec // This is how the protocol works
@@ -172,7 +179,7 @@ func (p *Processor) Process(body any, key UserSession) ([]byte, error) {
 }
 
 // BuildPacket constructs the final packet with protocol header and server keys.
-func (*Processor) BuildPacket(payload []byte, checksum, encodedProtocol uint32, key UserSession) []byte {
+func (*Processor) BuildPacket(payload []byte, checksum, encodedProtocol uint32, key *UserSession) []byte {
 	var packet bytes.Buffer
 
 	// Payload checksum
@@ -187,10 +194,23 @@ func (*Processor) BuildPacket(payload []byte, checksum, encodedProtocol uint32, 
 	packet.Write(protocolHeader)
 
 	// Server key/IV metadata
-	packet.WriteByte(byte(len(key.ServerKeyBundle.Key)))
-	packet.WriteByte(byte(len(key.ServerKeyBundle.IV)))
-	packet.Write(key.ServerKeyBundle.Key)
-	packet.Write(key.ServerKeyBundle.IV)
+
+	keyLen := 0
+	if key != nil {
+		keyLen = len(key.ServerKeyBundle.Key)
+	}
+	ivLen := 0
+	if key != nil {
+		ivLen = len(key.ServerKeyBundle.IV)
+	}
+	packet.WriteByte(byte(keyLen))
+	packet.WriteByte(byte(ivLen))
+	if keyLen > 0 {
+		packet.Write(key.ServerKeyBundle.Key)
+	}
+	if ivLen > 0 {
+		packet.Write(key.ServerKeyBundle.IV)
+	}
 	packet.Write(payload)
 	return packet.Bytes()
 }

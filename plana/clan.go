@@ -53,14 +53,14 @@ func (b ClanSearchRequestBuilder) WithJoinOption(option flatdata.ClanJoinOption)
 
 func (b ClanSearchRequestBuilder) Execute(
 	ctx context.Context,
-	session UserSession,
+	session *UserSession,
 ) (*protos.ClanSearchResponse, error) {
 	return b.service.submitSearch(ctx, session, b.payload)
 }
 
 func (s *ClanService) submitSearch(
 	ctx context.Context,
-	session UserSession,
+	session *UserSession,
 	param ClanSearchRequestWrapper,
 ) (*protos.ClanSearchResponse, error) {
 	req, err := s.client.R().WithSession(session).Game(ctx, protos.Protocol_Clan_Search, param)
@@ -75,20 +75,20 @@ func (s *ClanService) submitSearch(
 	return result, nil
 }
 
-type ClanGetMyClanInfoRequestWrapper struct {
+type ClanMemberListRequestWrapper struct {
 	*protos.ClanMemberListRequest
 }
 
-func (w ClanGetMyClanInfoRequestWrapper) Packet() *protos.RequestPacket {
+func (w ClanMemberListRequestWrapper) Packet() *protos.RequestPacket {
 	return &w.RequestPacket
 }
 
 func (s *ClanService) GetMembers(
 	ctx context.Context,
-	session UserSession,
+	session *UserSession,
 	clanID int64,
 ) (*protos.ClanMemberListResponse, error) {
-	req, err := s.client.R().WithSession(session).Game(ctx, protos.Protocol_Clan_MemberList, ClanGetMyClanInfoRequestWrapper{
+	req, err := s.client.R().WithSession(session).Game(ctx, protos.Protocol_Clan_MemberList, ClanMemberListRequestWrapper{
 		ClanMemberListRequest: &protos.ClanMemberListRequest{
 			ClanDBId: clanID,
 		},

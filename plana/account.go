@@ -3,7 +3,6 @@ package plana
 import (
 	"context"
 	"crypto/rand"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 
@@ -39,7 +38,7 @@ func (w AccountAuthRequestWrapper) Packet() *protos.RequestPacket {
 
 func (s *AccountService) Authenticate(
 	ctx context.Context,
-	credential UserSession,
+	credential *UserSession,
 	opts ...AccountAuthOption,
 ) (*protos.AccountAuthResponse, error) {
 	// Generate random bytes
@@ -96,17 +95,16 @@ func (w AccountCheckYostarRequestWrapper) Packet() *protos.RequestPacket {
 
 func (s *AccountService) CheckYostar(
 	ctx context.Context,
+	session *UserSession,
 	ops YostarCheckOption,
 ) (*protos.AccountCheckYostarResponse, error) {
 	param := AccountCheckYostarRequestWrapper{
 		&protos.AccountCheckYostarRequest{
-			EnterTicket:        ops.EnterTicket,
-			Cookie:             ops.Cookie,
-			ClientGeneratedKey: base64.StdEncoding.EncodeToString(rsaEncrypt(ops.KeyBundle.Key, s.client.publicKey)),
-			ClientGeneratedIV:  base64.StdEncoding.EncodeToString(rsaEncrypt(ops.KeyBundle.IV, s.client.publicKey)),
+			EnterTicket: ops.EnterTicket,
+			Cookie:      ops.Cookie,
 		},
 	}
-	req, err := s.client.R().Game(ctx, protos.Protocol_Account_CheckYostar, param)
+	req, err := s.client.R().WithSession(session).Game(ctx, protos.Protocol_Account_CheckYostar, param)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create check yostar request: %w", err)
 	}

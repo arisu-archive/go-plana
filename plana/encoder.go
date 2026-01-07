@@ -3,12 +3,15 @@ package plana
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/arisu-archive/plana-protos/protos"
 )
+
+var ErrProtocolEncoderNotConfigured = errors.New("protocol encoder is not configured")
 
 type encoderRequest struct {
 	Server   string `json:"server"`
@@ -17,6 +20,9 @@ type encoderRequest struct {
 }
 
 func (c *Client) encodeProtocol(ctx context.Context, crc32 uint32, p protos.Protocol) (uint32, error) {
+	if c.ProtocolEncoderConfig == nil {
+		return 0, ErrProtocolEncoderNotConfigured
+	}
 	data := encoderRequest{
 		Server:   "japan",
 		Protocol: uint64(p), //nolint:gosec // This is how the protocol works
@@ -27,9 +33,14 @@ func (c *Client) encodeProtocol(ctx context.Context, crc32 uint32, p protos.Prot
 		return 0, fmt.Errorf("failed to serialize protocol encoder request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.ProtocolEncoderURL.String(), bytes.NewBuffer(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.ProtocolEncoderConfig.URL.String(), bytes.NewBuffer(payload))
 	if err != nil {
 		return 0, fmt.Errorf("failed to create protocol encoder request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if c.ProtocolEncoderConfig.ClientID != "" && c.ProtocolEncoderConfig.ClientSecret != "" {
+		req.Header.Set("Cf-Access-Client-Id", c.ProtocolEncoderConfig.ClientID)
+		req.Header.Set("Cf-Access-Client-Secret", c.ProtocolEncoderConfig.ClientSecret)
 	}
 
 	resp, err := c.client.Do(req)

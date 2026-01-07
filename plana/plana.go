@@ -2,30 +2,36 @@ package plana
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"sync"
 
 	"github.com/arisu-archive/plana-protos/protos"
 )
 
 const (
-	Version           = "1.82.378581"
-	defaultUserAgent  = "BestHTTP/2 v2.4.0"
-	defaultXorKey     = 0xD9
-	defaultGatewayURL = "https://prod-gateway.bluearchiveyostar.com:5100/"
-	defaultGameURL    = "https://prod-game.bluearchiveyostar.com:5000/"
+	Version              = "1.82.390231"
+	defaultBundleVersion = "qtmrfsa5k8"
+	defaultUserAgent     = "BestHTTP/2 v2.4.0"
+	defaultXorKey        = 0xD9
+	defaultGatewayURL    = "https://prod-gateway.bluearchiveyostar.com:5100/"
+	defaultGameURL       = "https://prod-game.bluearchiveyostar.com:5000/"
 )
 
 type Client struct {
-	client *http.Client
+	clientMu sync.Mutex
+	client   *http.Client
 
 	// XorEncryptionKey is the byte used to XOR the payload before sending.
 	XorEncryptionKey byte
@@ -34,10 +40,11 @@ type Client struct {
 	JSONSerializer JSONSerializer
 
 	// User agent used when communicating with the game API.
-	UserAgent string
+	BundleVersion string
+	UserAgent     string
 
-	ProtocolEncoderURL *url.URL // URL of the protocol encoder service.
-	GetCookieURL       *url.URL // URL for getting cookies.
+	ProtocolEncoderConfig *EncoderConfig   // Configuration for the protocol encoder service.
+	CookieJarConfig       *CookieJarConfig // Configuration for the cookie jar service.
 
 	// PublicKey is the RSA public key used for encrypting sensitive data.
 	publicKey *rsa.PublicKey
@@ -85,14 +92,15 @@ type requestParams struct {
 	apiType  apiType
 	protocol protos.Protocol
 	body     RequestPacketReader
-	session  UserSession
+	session  *UserSession
+	headers  map[string]string
 }
 
 // Request represents an API request.
 type Request struct {
 	*http.Request
 	apiType    apiType
-	SessionKey UserSession
+	SessionKey *UserSession
 }
 
 // Response represents an API response.
@@ -129,51 +137,129 @@ func (*DefaultJSONSerializer) DeserializeReader(r io.Reader, v any) error {
 
 type RequestBuilder struct {
 	client  *Client
-	session UserSession
+	session *UserSession
+	headers map[string]string
 }
 
 func (c *Client) R() *RequestBuilder {
 	return &RequestBuilder{
-		client: c,
+		client:  c,
+		headers: make(map[string]string),
 	}
 }
 
-func (rb *RequestBuilder) WithSession(session UserSession) *RequestBuilder {
+func (rb *RequestBuilder) WithSession(session *UserSession) *RequestBuilder {
 	rb.session = session
 	return rb
 }
 
-func (rb *RequestBuilder) Gateway(ctx context.Context, protocol protos.Protocol, body RequestPacketReader) (*Request, error) {
+// WithHeader adds a custom header to the request.
+func (rb *RequestBuilder) WithHeader(key, value string) *RequestBuilder {
+	rb.headers[key] = value
+	return rb
+}
+
+// WithHeaders adds multiple custom headers to the request.
+func (rb *RequestBuilder) WithHeaders(headers map[string]string) *RequestBuilder {
+	maps.Copy(rb.headers, headers)
+	return rb
+}
+
+func (rb *RequestBuilder) Gateway(
+	ctx context.Context,
+	protocol protos.Protocol,
+	body RequestPacketReader,
+	opts ...PacketPopulatorOption,
+) (*Request, error) {
 	return rb.client.newRequest(ctx, requestParams{
 		apiType:  gateway,
 		protocol: protocol,
 		body:     body,
 		session:  rb.session,
-	})
+		headers:  rb.headers,
+	}, opts...)
 }
 
-func (rb *RequestBuilder) Game(ctx context.Context, protocol protos.Protocol, body RequestPacketReader) (*Request, error) {
+func (rb *RequestBuilder) Game(
+	ctx context.Context,
+	protocol protos.Protocol,
+	body RequestPacketReader,
+	opts ...PacketPopulatorOption,
+) (*Request, error) {
 	return rb.client.newRequest(ctx, requestParams{
 		apiType:  game,
 		protocol: protocol,
 		body:     body,
 		session:  rb.session,
-	})
+		headers:  rb.headers,
+	}, opts...)
 }
 
 // NewClient returns a new Arona API client. If a nil httpClient is
 // provided, a new http.Client will be used.
-func NewClient(protocolEncoderURL *url.URL, publicKey *rsa.PublicKey, httpClient *http.Client) *Client {
+func NewClient(publicKey *rsa.PublicKey, httpClient *http.Client) *Client {
 	if httpClient == nil {
 		httpClient = &http.Client{}
 	}
 	httpClient2 := *httpClient
 	c := &Client{
-		client:             &httpClient2,
-		ProtocolEncoderURL: protocolEncoderURL,
-		publicKey:          publicKey,
+		client:    &httpClient2,
+		publicKey: publicKey,
 	}
 	return c.initialize()
+}
+
+func (c *Client) copy() *Client {
+	c.clientMu.Lock()
+	// Copy the underlying http.Client so derived clients keep the same
+	// configuration (Transport, timeouts, cookie jar, redirect policy, etc.).
+	// Note: this is a shallow copy, which is the recommended approach for
+	// http.Client. The Transport (and any custom RoundTripper) is intentionally
+	// shared across clones.
+	httpClientClone := *c.client
+	clone := &Client{
+		client:                &httpClientClone,
+		publicKey:             c.publicKey,
+		UserAgent:             c.UserAgent,
+		BundleVersion:         c.BundleVersion,
+		XorEncryptionKey:      c.XorEncryptionKey,
+		ProtocolEncoderConfig: c.ProtocolEncoderConfig,
+		CookieJarConfig:       c.CookieJarConfig,
+		JSONSerializer:        c.JSONSerializer,
+		GatewayURL:            c.GatewayURL,
+		GameURL:               c.GameURL,
+	}
+	c.clientMu.Unlock()
+	// Shallow copy is sufficient since fields are either value types or pointers
+	return clone
+}
+
+type CookieJarConfig struct {
+	URL          *url.URL
+	ClientID     string
+	ClientSecret string
+}
+
+func (c *Client) WithCookie(jar *CookieJarConfig) *Client {
+	// Copy a new Client to avoid modifying the original
+	c2 := c.copy()
+	defer c2.initialize()
+	c2.CookieJarConfig = jar
+	return c2
+}
+
+type EncoderConfig struct {
+	URL          *url.URL
+	ClientID     string
+	ClientSecret string
+}
+
+func (c *Client) WithEncoder(cfg *EncoderConfig) *Client {
+	// Copy a new Client to avoid modifying the original
+	c2 := c.copy()
+	defer c2.initialize()
+	c2.ProtocolEncoderConfig = cfg
+	return c2
 }
 
 // initialize sets up the client with default values.
@@ -188,6 +274,9 @@ func (c *Client) initialize() *Client {
 	if c.UserAgent == "" {
 		c.UserAgent = defaultUserAgent
 	}
+	if c.BundleVersion == "" {
+		c.BundleVersion = defaultBundleVersion
+	}
 	if c.XorEncryptionKey == 0 {
 		c.XorEncryptionKey = defaultXorKey
 	}
@@ -195,6 +284,7 @@ func (c *Client) initialize() *Client {
 		c.JSONSerializer = &DefaultJSONSerializer{}
 	}
 	c.processor = &Processor{
+		PublicKey:      c.publicKey,
 		XorKey:         c.XorEncryptionKey,
 		JSONSerializer: c.JSONSerializer,
 	}
@@ -210,45 +300,101 @@ func (c *Client) initialize() *Client {
 	return c
 }
 
-func (c *Client) Do(ctx context.Context, req *Request, v any) (*Response, error) {
+func (c *Client) Do(ctx context.Context, req *Request, packet any) (*Response, error) {
 	resp, err := c.bareDo(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	switch v := v.(type) {
-	case nil:
-	case io.Writer:
-		_, err = io.Copy(v, resp.Body)
-	default:
-		decErr := c.JSONSerializer.DeserializeReader(resp.Body, v)
-		if errors.Is(decErr, io.EOF) {
-			decErr = nil // ignore EOF errors caused by empty response body
-		}
-		if decErr != nil {
-			err = decErr
-		}
+	if req.SessionKey != nil {
+		req.SessionKey.RequestCount++
 	}
-	return resp, err
+
+	var responseData ResponseData
+	response, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	decErr := c.JSONSerializer.Deserialize(response, &responseData)
+	if errors.Is(decErr, io.EOF) {
+		decErr = nil // ignore EOF errors caused by empty response body
+	}
+	if decErr != nil {
+		return nil, fmt.Errorf("failed to deserialize response data: %w", decErr)
+	}
+
+	// Handle error protocol
+	if responseData.Protocol == "Protocol_Error" {
+		errPacket, err := c.handleErrorPacket(responseData)
+		if err != nil {
+			return nil, err
+		}
+		return nil, c.handleKnownErrorPacket(errPacket)
+	}
+	if err := c.handleResponsePacket(responseData, packet); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *Client) handleResponsePacket(responseData ResponseData, packet any) error {
+	if err := c.JSONSerializer.Deserialize([]byte(responseData.Packet), packet); err != nil {
+		return fmt.Errorf("failed to deserialize response packet: %w", err)
+	}
+	return nil
+}
+
+func (*Client) handleKnownErrorPacket(errPacket *protos.ErrorPacket) error {
+	err := NewWebAPIError(errPacket)
+	switch err.Code() {
+	case protos.WebAPIErrorCode_InvalidSession, protos.WebAPIErrorCode_SessionNotFound,
+		protos.WebAPIErrorCode_SessionParseFail, protos.WebAPIErrorCode_SessionInvalidInput,
+		protos.WebAPIErrorCode_SessionNotAuth, protos.WebAPIErrorCode_SessionDuplicateLogin,
+		protos.WebAPIErrorCode_SessionTimeOver, protos.WebAPIErrorCode_SessionInvalidVersion,
+		protos.WebAPIErrorCode_SessionChangeDate:
+		return NewInvalidSessionError("invalid session", err)
+	}
+	return err
+}
+
+func (c *Client) handleErrorPacket(responseData ResponseData) (*protos.ErrorPacket, error) {
+	errorPacket := new(protos.ErrorPacket)
+	if err := c.handleResponsePacket(responseData, errorPacket); err != nil {
+		return nil, fmt.Errorf("failed to handle error packet: %w", err)
+	}
+	return errorPacket, nil
 }
 
 func (c *Client) bareDo(ctx context.Context, req *Request) (*Response, error) {
-	resp, err := c.client.Do(req.WithContext(ctx))
+	resp, err := c.client.Do(req.WithContext(ctx)) //nolint:bodyclose // response body will be handled by caller
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	// Determine if gzip uncompression is needed
+	if resp.Header.Get("Content-Encoding") == "gzip" {
+		gzgzipReader, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create gzip reader: %w", err)
+		}
+		resp.Body = io.NopCloser(gzgzipReader)
+	}
 
 	// Determine if response should be decrypted based on session keys
 	// If we have server keys, we expect encrypted content that needs decryption
-	if len(req.SessionKey.ServerKeyBundle.Key) > 0 && len(req.SessionKey.ServerKeyBundle.IV) > 0 {
+	if req.SessionKey != nil && len(req.SessionKey.ServerKeyBundle.Key) > 0 && len(req.SessionKey.ServerKeyBundle.IV) > 0 {
 		// Decrypt the response
 		ciphertext, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return nil, fmt.Errorf("response read failed: %w", err)
 		}
-		decryptedData, err := decryptPayload(ciphertext, req.SessionKey.ClientKeyBundle.Key, req.SessionKey.ClientKeyBundle.IV)
+
+		// Decode the response payload from base64 string and decrypt it.
+		decodedCiphertext, err := base64.StdEncoding.DecodeString(string(ciphertext))
+		if err != nil {
+			return nil, fmt.Errorf("response base64 decode failed: %w", err)
+		}
+		decryptedData, err := decryptPayload(decodedCiphertext, req.SessionKey.ClientKeyBundle.Key, req.SessionKey.ClientKeyBundle.IV)
 		if err != nil {
 			return nil, fmt.Errorf("response decryption failed: %w", err)
 		}
@@ -265,10 +411,13 @@ func (c *Client) bareDo(ctx context.Context, req *Request) (*Response, error) {
 func (c *Client) newRequest(
 	ctx context.Context,
 	params requestParams,
+	opts ...PacketPopulatorOption,
 ) (*Request, error) {
-	c.populate(params.body.Packet(), params.protocol, WithSessionKey(params.session))
+	opts = append(opts, withSessionKey(params.session))
+	c.populate(params.body.Packet(), params.protocol, opts...)
 	// Process payload through crypto pipeline
-	payload, err := c.processor.Process(params.body, params.session)
+	// For now, we assume gateway bypass is false
+	payload, err := c.processor.Process(params.body, params.session, false)
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +437,7 @@ func (c *Client) newRequest(
 	}
 
 	// Build HTTP request
-	req, err := c.buildHTTPRequest(params.apiType, buf, contentType)
+	req, err := c.buildHTTPRequest(params.apiType, buf, contentType, params.headers)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +450,7 @@ func (c *Client) newRequest(
 }
 
 // buildHTTPRequest creates the HTTP request with proper headers.
-func (c *Client) buildHTTPRequest(apiType apiType, body *bytes.Buffer, contentType string) (*http.Request, error) {
+func (c *Client) buildHTTPRequest(apiType apiType, body *bytes.Buffer, contentType string, customHeaders map[string]string) (*http.Request, error) {
 	u, err := c.getBaseURL(apiType).Parse("/api/gateway")
 	if err != nil {
 		return nil, fmt.Errorf("URL parse failed: %w", err)
@@ -315,7 +464,13 @@ func (c *Client) buildHTTPRequest(apiType apiType, body *bytes.Buffer, contentTy
 	req.Header.Set("User-Agent", c.UserAgent)
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("mx", "2") //nolint:canonicalheader // required by API
+	req.Header.Set("Bundle-Version", c.BundleVersion)
 	req.Header.Set("Accept-Encoding", "identity")
+
+	// Apply custom headers
+	for key, value := range customHeaders {
+		req.Header.Set(key, value)
+	}
 
 	return req, nil
 }

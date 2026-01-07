@@ -67,7 +67,7 @@ var _ = Describe("Processor", func() {
 			body := map[string]any{"key": "value"}
 			key := plana.UserSession{}
 
-			result, err := processor.Process(body, key)
+			result, err := processor.Process(body, &key, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeEmpty())
 
@@ -89,8 +89,9 @@ var _ = Describe("Processor", func() {
 		})
 
 		It("should process with encryption", func() {
-			aesKey := []byte{}
-			iv := []byte{}
+			// AES-128 key + 16-byte IV for CBC.
+			aesKey := []byte("0123456789abcdef")
+			iv := []byte("abcdef0123456789")
 
 			body := map[string]any{"key": "value"}
 			key := plana.UserSession{
@@ -100,7 +101,7 @@ var _ = Describe("Processor", func() {
 				},
 			}
 
-			result, err := processor.Process(body, key)
+			result, err := processor.Process(body, &key, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeEmpty())
 
@@ -139,10 +140,10 @@ var _ = Describe("Processor", func() {
 			body2 := map[string]any{"key": "value2"}
 			key := plana.UserSession{}
 
-			result1, err1 := processor.Process(body1, key)
+			result1, err1 := processor.Process(body1, &key, false)
 			Expect(err1).NotTo(HaveOccurred())
 
-			result2, err2 := processor.Process(body2, key)
+			result2, err2 := processor.Process(body2, &key, false)
 			Expect(err2).NotTo(HaveOccurred())
 
 			Expect(result1).NotTo(Equal(result2))
@@ -152,10 +153,10 @@ var _ = Describe("Processor", func() {
 			body := map[string]any{"key": "value"}
 			key := plana.UserSession{}
 
-			result1, err1 := processor.Process(body, key)
+			result1, err1 := processor.Process(body, &key, false)
 			Expect(err1).NotTo(HaveOccurred())
 
-			result2, err2 := processor.Process(body, key)
+			result2, err2 := processor.Process(body, &key, false)
 			Expect(err2).NotTo(HaveOccurred())
 
 			Expect(result1).To(Equal(result2))
@@ -165,7 +166,7 @@ var _ = Describe("Processor", func() {
 			body := map[string]any{}
 			key := plana.UserSession{}
 
-			result, err := processor.Process(body, key)
+			result, err := processor.Process(body, &key, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeEmpty())
 		})
@@ -189,7 +190,7 @@ var _ = Describe("Processor", func() {
 				},
 			}
 
-			result := processor.BuildPacket(payload, checksum, protocol, key)
+			result := processor.BuildPacket(payload, checksum, protocol, &key)
 			Expect(len(result)).To(Equal(4 + 4 + 1 + 1 + 2 + 2)) // protocol + keyLen + ivLen + key + iv
 		})
 
@@ -204,7 +205,7 @@ var _ = Describe("Processor", func() {
 				},
 			}
 
-			result := processor.BuildPacket(payload, checksum, protocol, key)
+			result := processor.BuildPacket(payload, checksum, protocol, &key)
 			Expect(len(result)).To(Equal(4 + 4 + 1 + 1 + 2 + 3 + 3))
 			// Check the format: 4 bytes checksum + 4 bytes protocol + lengths + keys + iv + payload
 			Expect(result[0:4]).To(Equal([]byte{0xEF, 0xBE, 0xAD, 0xDE}))             // Checksum
@@ -230,7 +231,7 @@ var _ = Describe("Processor", func() {
 				},
 			}
 
-			result := processor.BuildPacket(payload, checksum, protocol, key)
+			result := processor.BuildPacket(payload, checksum, protocol, &key)
 			expectedLen := 4 + 4 + 1 + 1 + 1 + 1 + len(payload)
 			Expect(len(result)).To(Equal(expectedLen))
 		})
@@ -248,7 +249,7 @@ var _ = Describe("Processor", func() {
 			tests := []uint32{0x00000000, 0xFFFFFFFF, 0x12345678, 0xAABBCCDD}
 
 			for _, protocol := range tests {
-				result := processor.BuildPacket(payload, checksum, protocol, key)
+				result := processor.BuildPacket(payload, checksum, protocol, &key)
 				Expect(len(result) > 0).To(BeTrue())
 			}
 		})
