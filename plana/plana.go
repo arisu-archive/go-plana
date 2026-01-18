@@ -324,7 +324,7 @@ func (c *Client) Do(ctx context.Context, req *Request, packet any) (*Response, e
 	}
 
 	// Handle error protocol
-	if responseData.Protocol == "Protocol_Error" {
+	if responseData.Protocol == "Error" {
 		errPacket, err := c.handleErrorPacket(responseData)
 		if err != nil {
 			return nil, err
