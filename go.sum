@@ -6,6 +6,8 @@ github.com/arisu-archive/plana-flatbuffers v0.8.0 h1:aklAWLqZgKNppzQb1/hngXWZKSn
 github.com/arisu-archive/plana-flatbuffers v0.8.0/go.mod h1:heK7t5tzzEvXumsKTRSPh/+K3NydEwN0iiaB0sdkPbg=
 github.com/arisu-archive/plana-flatbuffers v0.10.0 h1:zt36N41asmvVJpfyKxVeNJV2vFqB4jgvTaksshvTBOc=
 github.com/arisu-archive/plana-flatbuffers v0.10.0/go.mod h1:E5pKXYVOpec7iMo02TxBWtPVOJVvnrPI6Tiy2k6UoEE=
+github.com/arisu-archive/plana-flatbuffers v0.11.0 h1:7rJdqA+2soiLpU4F7CH0bkUdBte7at2z/6USpqRWCsI=
+github.com/arisu-archive/plana-flatbuffers v0.11.0/go.mod h1:E5pKXYVOpec7iMo02TxBWtPVOJVvnrPI6Tiy2k6UoEE=
 github.com/arisu-archive/plana-protos v1.1.0 h1:u+FirCRsV8XvrtIL6qDxsE59x76BOjYW8nLvpkk5LN4=
 github.com/arisu-archive/plana-protos v1.1.0/go.mod h1:C+V8s78k/h5uMo3Skv6wgkoI1YzVMXc7r8wviv1CnLw=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
