@@ -73,10 +73,10 @@ type service struct {
 
 // UserSession holds keys and IVs used for encrypting and forging packets.
 type UserSession struct {
-	protos.SessionKey // Session key information
-	ClientKeyBundle   AESKeyBundle
-	ServerKeyBundle   AESKeyBundle
-	RequestCount      int64
+	*protos.SessionKey // Session key information
+	ClientKeyBundle    AESKeyBundle
+	ServerKeyBundle    AESKeyBundle
+	RequestCount       int64
 }
 
 // apiType represents the type of API being accessed.
