@@ -9,7 +9,7 @@ require (
 	github.com/arisu-archive/plana-protos v1.5.1
 	github.com/google/uuid v1.6.0
 	github.com/onsi/ginkgo/v2 v2.28.2
-	github.com/onsi/gomega v1.39.1
+	github.com/onsi/gomega v1.40.0
 )
 
 require (
