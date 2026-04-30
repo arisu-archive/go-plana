@@ -6,7 +6,7 @@ toolchain go1.26.2
 
 require (
 	github.com/arisu-archive/plana-flatbuffers v0.12.0
-	github.com/arisu-archive/plana-protos v1.5.1
+	github.com/arisu-archive/plana-protos v1.5.2
 	github.com/google/uuid v1.6.0
 	github.com/onsi/ginkgo/v2 v2.28.2
 	github.com/onsi/gomega v1.39.1
