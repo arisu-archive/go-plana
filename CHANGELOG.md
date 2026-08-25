@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0](https://github.com/arisu-archive/go-plana/compare/v1.4.0...v1.5.0) (2026-08-25)
+
+
+### Features
+
+* **ci:** add automated bundle version generation ([#32](https://github.com/arisu-archive/go-plana/issues/32)) ([ce23b54](https://github.com/arisu-archive/go-plana/commit/ce23b549395be1bbff921a2e7845cb9802c10191))
+* implement command-line client ([#34](https://github.com/arisu-archive/go-plana/issues/34)) ([5a9267c](https://github.com/arisu-archive/go-plana/commit/5a9267c6ce9a347530a1b179c797353a706f6987))
+
 ## [1.4.0](https://github.com/arisu-archive/go-plana/compare/v1.3.0...v1.4.0) (2026-08-25)
 
 
