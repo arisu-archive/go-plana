@@ -47,6 +47,25 @@ var _ = Describe("Request cancellation", func() {
 	})
 })
 
+var _ = Describe("Request URLs", func() {
+	It("joins the gateway endpoint to the configured base path", func() {
+		gatewayURL, err := url.Parse("https://example.invalid/custom-api/")
+		Expect(err).NotTo(HaveOccurred())
+
+		client := plana.NewClient(nil, nil)
+		client.GatewayURL = gatewayURL
+		request, err := client.R().WithGatewayBypass().Gateway(
+			context.Background(),
+			protos.Protocol_Queuing_GetTicket,
+			plana.QueuingGetAuthTicketRequestWrapper{
+				QueuingGetAuthTicketRequest: &protos.QueuingGetAuthTicketRequest{},
+			},
+		)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(request.URL.String()).To(Equal("https://example.invalid/custom-api/gateway"))
+	})
+})
+
 type roundTripperFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
