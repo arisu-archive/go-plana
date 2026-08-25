@@ -2,11 +2,11 @@
 
 # 🎮 Plana Client
 
-[![Go Version](https://pkg.go.dev/badge/github.com/arisu-archive/go-plana.svg)](https://pkg.go.dev/github.com/arisu-archive/go-plana) [![License](https://img.shields.io/github/license/arisu-archive/go-plana)](LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/arisu-archive/go-plana)](https://goreportcard.com/report/github.com/arisu-archive/go-plana)
+[![Go Reference](https://pkg.go.dev/badge/github.com/arisu-archive/go-plana.svg)](https://pkg.go.dev/github.com/arisu-archive/go-plana) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![CI](https://github.com/arisu-archive/go-plana/actions/workflows/ci.yml/badge.svg)](https://github.com/arisu-archive/go-plana/actions/workflows/ci.yml) [![Codecov](https://codecov.io/gh/arisu-archive/go-plana/graph/badge.svg)](https://codecov.io/gh/arisu-archive/go-plana)
 
-**A Go client library for interacting with Blue Archive game API**
+**A Go client library for interacting with Blue Archive's Yostar game servers**
 
-[Features](#features) • [Installation](#installation) • [Quick Start](#quick-start) • [Documentation](#documentation) • [Contributing](#contributing) • [License](#license)
+[Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Contributing](#-contributing)
 
 </div>
 
@@ -14,24 +14,49 @@
 
 ## 📖 Overview
 
-`go-plana` is a robust Go client library for programmatically interacting with the Blue Archive game API. It provides a type-safe, idiomatic Go interface for authentication, game data retrieval, and various game operations including raids, friends, clans, and more.
+Plana Client provides an idiomatic Go interface for communicating with the
+Blue Archive game API used by the Yostar/global release. It handles request
+metadata, protocol encoding, packet encryption and obfuscation, compression,
+session state, HTTP transport, and response decoding so callers can work with
+generated request and response types.
 
-### ✨ Features
+### Key Highlights
 
-- 🔐 **Authentication & Session Management** - Handle account authentication and session key management
-- 🛡️ **Encryption & Security** - Built-in support for RSA and AES encryption with XOR obfuscation
-- 🎯 **Comprehensive API Coverage** - Support for multiple game services:
-  - Account authentication
-  - Raid operations and rankings
-  - Friend management and search
-  - Clan operations
-  - Arena battles
-  - Eliminate raid events
-  - Queuing systems
-- 🔧 **Flexible Configuration** - Customizable URLs, encryption keys, and HTTP clients
-- 📦 **Protocol Buffer Support** - Efficient serialization using FlatBuffers and Protocol Buffers
-- 🧪 **Well-Tested** - Comprehensive test suite using Ginkgo/Gomega
-- 🎨 **Fluent API Design** - Builder patterns for intuitive request construction
+- 🔐 **Secure Communication**: RSA-OAEP pre-session encryption and AES-CBC
+  session encryption with managed key bundles.
+- 🌐 **Yostar/Global Support**: Production gateway and game endpoints for the
+  Yostar/global release, with configurable base URLs.
+- 🛡️ **Type-Safe API**: Generated Protocol Buffer messages and FlatBuffers
+  enums for request and response data.
+- 🧩 **Modular Design**: Dedicated services for each supported game feature.
+- ⚡ **Efficient Transport**: Reusable HTTP transport, gzip compression,
+  checksums, and compact multipart packets.
+- 🧪 **CI-Verified**: Automated linting, race detection, atomic coverage, and
+  Codecov reporting.
+
+## ✨ Features
+
+### Core Services
+
+- **Account Management** - Session authentication and Yostar account validation
+- **Arena** - Competitive ranking lists
+- **Raid System** - Lobby access, opponent searches, best teams, and rankings
+- **Eliminate Raid** - Lobby access, boss-group searches, best teams, and rankings
+- **Clan Operations** - Clan search and member lists
+- **Friend System** - Friend-code search and detailed player information
+- **Queuing System** - Authentication tickets and waiting-queue processing
+- **Cookie Service** - Authentication cookies through an optional cookie provider
+
+### Advanced Capabilities
+
+- Custom client-level JSON serialization
+- Flexible request builder with custom headers
+- Automatic protocol encoding and CRC32 checksum generation
+- RSA and session-based AES encryption/decryption
+- Gzip compression and XOR obfuscation
+- Multipart form-data packet transport
+- Request-scoped context cancellation
+- Typed web API and invalid-session errors
 
 ## 📦 Installation
 
@@ -41,356 +66,321 @@ go get github.com/arisu-archive/go-plana
 
 ### Requirements
 
-- Go 1.24.3 or higher
-- RSA public key for encryption (game-specific)
-- Protocol encoder service URL
+- Go 1.25 or newer. The module currently selects the Go 1.26.2 toolchain.
+- The protocol RSA public key for pre-session requests that require encryption.
+- Valid Yostar credentials and session material for authenticated operations.
+
+Dependencies are managed through Go modules.
 
 ## 🚀 Quick Start
 
-### Basic Setup
+Create a client with the protocol RSA public key. Passing `nil` as the HTTP
+client uses a new `http.Client` with default settings.
 
 ```go
-package main
+client := plana.NewClient(publicKey, nil)
 
-import (
-    "context"
-    "crypto/rsa"
-    "net/url"
-    
-    "github.com/arisu-archive/go-plana/plana"
-)
-
-func main() {
-    // Parse protocol encoder URL
-    encoderURL, _ := url.Parse("https://your-protocol-encoder.example.com")
-    
-    // Load your RSA public key
-    var publicKey *rsa.PublicKey
-    // ... load your public key
-    
-    // Create a new client
-    client := plana.NewClient(encoderURL, publicKey, nil)
-    
-    // Optional: Configure custom URLs
-    client.GatewayURL, _ = url.Parse("https://custom-gateway.example.com")
-    client.GameURL, _ = url.Parse("https://custom-game.example.com")
+ranks, err := client.Arena.GetRanks(ctx, 1, 20)
+if err != nil {
+	log.Fatal(err)
 }
+
+fmt.Printf("%+v\n", ranks)
 ```
 
-### Authentication
+`publicKey` should be a `*rsa.PublicKey`. The client uses the production
+Yostar/global gateway and game endpoints by default.
+
+### Authenticated Requests
+
+Authenticated services accept a `UserSession` containing the server session
+key, the two AES key bundles, and the current request counter.
 
 ```go
-ctx := context.Background()
-
-// Create a session with your credentials
 session := &plana.UserSession{
-    // Initialize with your session keys
+	SessionKey:      sessionKey,
+	ClientKeyBundle: plana.AESKeyBundle{Key: clientKey, IV: clientIV},
+	ServerKeyBundle: plana.AESKeyBundle{Key: serverKey, IV: serverIV},
+	RequestCount:    0,
 }
 
-// Authenticate
-authResponse, err := client.Account.Authenticate(ctx, session)
+auth, err := client.Account.Authenticate(ctx, session)
 if err != nil {
-    log.Fatalf("Authentication failed: %v", err)
+	log.Fatal(err)
 }
 
-fmt.Printf("Logged in as: %s\n", authResponse.AccountNickname)
+fmt.Printf("%+v\n", auth)
 ```
 
-### Making API Requests
+### Raid Operations
 
 ```go
-// Get raid lobby information
-raidLobby, err := client.Raid.Lobby(ctx, session)
+opponents, err := client.Raid.
+	WithOpponentRank(100).
+	Search(ctx, session)
 if err != nil {
-    log.Fatalf("Failed to get raid lobby: %v", err)
+	log.Fatal(err)
 }
 
-// Search for friends by friend code
-friendResult, err := client.Friend.Search().
-    ByCode("ABC123456").
-    Execute(ctx, session)
+lobby, err := client.Raid.Lobby(ctx, session)
 if err != nil {
-    log.Fatalf("Friend search failed: %v", err)
-}
-
-// Get raid opponents by rank
-opponents, err := client.Raid.WithOpponentRank(100).
-    Search(ctx, session)
-if err != nil {
-    log.Fatalf("Failed to get raid opponents: %v", err)
+	log.Fatal(err)
 }
 ```
 
-### Using Request Builder
+Raid opponents can also be selected by score with `WithOpponentScore`.
+Eliminate raids expose equivalent rank and score searches together with a boss
+group selector.
+
+### Friend and Clan Search
 
 ```go
-// Create requests with custom headers
-req, err := client.R().
-    WithSession(session).
-    WithAuthToken("your-token").
-    WithHeader("Custom-Header", "value").
-    Game(ctx, protos.Protocol_Raid_Lobby, requestBody)
+friends, err := client.Friend.Search().
+	ByCode("ABC123456").
+	WithLevelOption(flatdata.FriendSearchLevelOptionAll).
+	Execute(ctx, session)
 if err != nil {
-    log.Fatal(err)
+	log.Fatal(err)
 }
 
-// Execute the request
-var response protos.RaidLobbyResponse
-_, err = client.Do(req, &response)
+clans, err := client.Clan.Search().
+	ByName("Arisu Archive").
+	Execute(ctx, session)
+if err != nil {
+	log.Fatal(err)
+}
 ```
+
+Clan searches can use either `ByName` or `ByCode`; setting one clears the
+other.
 
 ## 📚 Documentation
 
-### Core Components
-
-#### Client
-
-The `Client` is the main entry point for all API operations:
-
-```go
-type Client struct {
-    // HTTP client for requests
-    client *http.Client
-    
-    // Encryption configuration
-    XorEncryptionKey byte
-    publicKey *rsa.PublicKey
-    
-    // Service URLs
-    ProtocolEncoderURL *url.URL
-    GetCookieURL *url.URL
-    GatewayURL *url.URL
-    GameURL *url.URL
-    
-    // Game services
-    Account *AccountService
-    Arena *ArenaService
-    Clan *ClanService
-    Cookie *CookieService
-    EliminateRaid *EliminateRaidService
-    Friend *FriendService
-    Queuing *QueuingService
-    Raid *RaidService
-}
-```
-
-#### Session Management
-
-User sessions maintain encryption keys and request state:
-
-```go
-type UserSession struct {
-    SessionKey protos.SessionKey
-    ClientKeyBundle AESKeyBundle
-    ServerKeyBundle AESKeyBundle
-    RequestCount int64
-}
-
-type AESKeyBundle struct {
-    Key []byte
-    IV  []byte
-}
-```
+The complete exported API is available on
+[pkg.go.dev](https://pkg.go.dev/github.com/arisu-archive/go-plana/plana).
 
 ### Available Services
 
-#### Account Service
+| Service | Supported operations |
+|---|---|
+| `Account` | Authenticate a session and validate Yostar account data |
+| `Arena` | Retrieve arena ranking lists |
+| `Clan` | Search by name or code and retrieve clan members |
+| `Cookie` | Request an authentication cookie from a configured cookie service |
+| `EliminateRaid` | Retrieve lobby data, search rankings, and inspect best teams |
+| `Friend` | Search by friend code and retrieve detailed friend information |
+| `Queuing` | Obtain an authentication ticket and process the waiting queue |
+| `Raid` | Retrieve lobby data, search rankings, and inspect best teams |
+
+### Client Configuration
+
+The client defaults to the production Yostar/global endpoints:
+
+| API | Default URL |
+|---|---|
+| Gateway | `https://prod-gateway.bluearchiveyostar.com:5100/` |
+| Game | `https://prod-game.bluearchiveyostar.com:5000/` |
+
+Both URLs are exported fields and can be replaced when needed:
 
 ```go
-// Authenticate with game servers
-authResp, err := client.Account.Authenticate(ctx, session)
+gatewayURL, err := url.Parse("https://gateway.example.com")
+if err != nil {
+	log.Fatal(err)
+}
 
-// Check Yostar account
-checkResp, err := client.Account.CheckYostar(ctx, plana.YostarCheckOption{
-    Cookie: "your-cookie",
-    EnterTicket: "your-ticket",
+gameURL, err := url.Parse("https://game.example.com")
+if err != nil {
+	log.Fatal(err)
+}
+
+client.GatewayURL = gatewayURL
+client.GameURL = gameURL
+```
+
+To use the optional cookie service, derive a client with `WithCookie`:
+
+```go
+cookieURL, err := url.Parse("https://cookies.example.com")
+if err != nil {
+	log.Fatal(err)
+}
+
+client = client.WithCookie(&plana.CookieJarConfig{
+	URL:          cookieURL,
+	ClientID:     cloudflareAccessClientID,
+	ClientSecret: cloudflareAccessClientSecret,
 })
-```
 
-#### Raid Service
-
-```go
-// Get raid lobby
-lobby, err := client.Raid.Lobby(ctx, session)
-
-// Search opponents by rank
-opponents, err := client.Raid.WithOpponentRank(100).Search(ctx, session)
-
-// Search opponents by score
-opponents, err := client.Raid.WithOpponentScore(50000).Search(ctx, session)
-
-// Get best team for an account
-team, err := client.Raid.GetBestTeam(ctx, session, accountID)
-
-// Get ranking index
-ranking, err := client.Raid.GetRankingIndex(ctx, session)
-```
-
-#### Friend Service
-
-```go
-// Search friends with builder pattern
-result, err := client.Friend.Search().
-    ByCode("ABC123456").
-    WithLevelOption(flatdata.FriendSearchLevelOptionAll).
-    Execute(ctx, session)
-
-// Get friend detailed information
-detail, err := client.Friend.GetDetail(ctx, session, friendAccountID)
-```
-
-#### Cookie Service
-
-```go
-// Get authentication cookie
 cookie, err := client.Cookie.GetCookie(ctx, plana.GetCookieOptions{
-    UserID: "your-user-id",
-    Seed: "your-seed",
-    AuthToken: "your-auth-token",
+	UserID: yostarUserID,
+	Seed:   seed,
 })
 ```
 
-### Custom JSON Serialization
+`ClientID` and `ClientSecret` are optional. When both are set, the cookie
+request includes the corresponding Cloudflare Access headers.
 
-You can provide your own JSON serializer:
+### Custom Requests
+
+Prefer the dedicated services for supported operations. For lower-level calls,
+the request builder accepts any payload implementing `RequestPacketReader`:
 
 ```go
-type CustomSerializer struct{}
-
-func (s *CustomSerializer) Serialize(v any, indent string) ([]byte, error) {
-    // Your custom serialization logic
+payload := plana.RaidLobbyRequestWrapper{
+	RaidLobbyRequest: &protos.RaidLobbyRequest{},
 }
 
-func (s *CustomSerializer) Deserialize(data []byte, v any) error {
-    // Your custom deserialization logic
+request, err := client.R().
+	WithSession(session).
+	WithHeader("X-Custom-Header", "value").
+	Game(ctx, protos.Protocol_Raid_Lobby, payload)
+if err != nil {
+	log.Fatal(err)
 }
 
-func (s *CustomSerializer) DeserializeReader(r io.Reader, v any) error {
-    // Your custom deserialization logic
-}
-
-// Use custom serializer
-client.JSONSerializer = &CustomSerializer{}
+response := new(protos.RaidLobbyResponse)
+_, err = client.Do(request, response)
 ```
+
+### JSON Serialization
+
+`DefaultJSONSerializer` uses Go's `encoding/json` package and is installed when
+the client is initialized. The exported `Client.JSONSerializer` field controls
+client-level request and response JSON operations, including cookie request
+serialization and response-envelope decoding.
+
+The packet processor captures the configured serializer during client
+initialization. Reassigning `Client.JSONSerializer` after `NewClient` returns
+does not reconfigure that existing processor, so keep the default serializer
+unless the distinction is intentional.
 
 ### Error Handling
 
-The library provides structured error types:
+Invalid-session errors wrap the underlying web API error, so callers can check
+the specific condition first and still inspect the original packet when useful.
 
 ```go
-resp, err := client.Raid.Lobby(ctx, session)
+response, err := client.Raid.Lobby(ctx, session)
 if err != nil {
-    // Check for specific error types
-    if errors.Is(err, plana.ErrInvalidSession) {
-        // Handle invalid session
-    }
-    
-    // Check for API errors
-    var apiErr *plana.WebAPIError
-    if errors.As(err, &apiErr) {
-        fmt.Printf("API Error: %s (code: %d)\n", apiErr.Message(), apiErr.Code())
-    }
+	var sessionErr *plana.InvalidSessionError
+	var apiErr *plana.ErrWebAPIError
+
+	switch {
+	case errors.As(err, &sessionErr):
+		log.Printf("invalid session: code=%d", sessionErr.Code())
+	case errors.As(err, &apiErr):
+		log.Printf("API error: code=%d reason=%s", apiErr.Code(), apiErr.Packet.Reason)
+	default:
+		log.Printf("request failed: %v", err)
+	}
 }
-```
-
-## 🧪 Testing
-
-The project uses Ginkgo and Gomega for testing:
-
-```bash
-# Run all tests
-go test ./...
-
-# Run tests with verbose output
-go test -v ./...
-
-# Run specific test suite
-go test -v ./plana/...
 ```
 
 ## 🏗️ Project Structure
 
-```
+```text
 go-plana/
-├── plana/                    # Main package
-│   ├── plana.go             # Core client and types
-│   ├── processor.go         # Payload processing and encryption
-│   ├── account.go           # Account service
-│   ├── raid.go              # Raid service
-│   ├── friend.go            # Friend service
-│   ├── clan.go              # Clan service
-│   ├── arena.go             # Arena service
-│   ├── cookie.go            # Cookie service
-│   ├── eliminate_raid.go    # Eliminate raid service
-│   ├── queuing.go           # Queuing service
-│   ├── encoder.go           # Protocol encoding
-│   ├── errors.go            # Error types
-│   └── *_test.go            # Test files
-├── go.mod                   # Go module definition
-├── go.sum                   # Dependency checksums
-├── LICENSE                  # MIT License
-└── README.md               # This file
+|-- plana/
+|   |-- plana.go             # Client, request builder, and HTTP transport
+|   |-- processor.go         # Compression, checksums, and encryption
+|   |-- request_packet.go    # Packet population and RSA handling
+|   |-- response.go          # Response envelope
+|   |-- errors.go            # Typed API errors
+|   |-- account.go           # Account service
+|   |-- arena.go             # Arena service
+|   |-- clan.go              # Clan service
+|   |-- cookie.go            # Cookie service
+|   |-- eliminate_raid.go    # Eliminate raid service
+|   |-- friend.go            # Friend service
+|   |-- queuing.go           # Queuing service
+|   |-- raid.go              # Raid service
+|   `-- *_test.go            # Ginkgo test suites
+|-- go.mod
+|-- go.sum
+|-- LICENSE
+`-- README.md
+```
+
+## 🧪 Testing
+
+The project uses Ginkgo and Gomega. Run the same lint and race-enabled test
+checks enforced by CI:
+
+```bash
+# Run lint checks
+golangci-lint run --timeout=5m ./...
+
+# Run tests with the race detector
+go test -race ./...
+
+# Run tests with the CI coverage profile
+go test -race -covermode=atomic -coverprofile=coverage.out ./...
+
+# Run the Plana package verbosely
+go test -race -v ./plana
 ```
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+Contributions are welcome. For substantial changes, open an issue first so the
+approach can be discussed.
 
-### Development Setup
+1. Clone the repository:
 
-1. **Clone the repository**
    ```bash
    git clone https://github.com/arisu-archive/go-plana.git
    cd go-plana
    ```
 
-2. **Install dependencies**
+2. Download dependencies:
+
    ```bash
    go mod download
    ```
 
-3. **Run tests**
+3. Make the change and add or update tests.
+
+4. Run the same verification used by CI:
+
    ```bash
-   go test ./...
+   golangci-lint run --timeout=5m ./...
+   go test -race -covermode=atomic -coverprofile=coverage.out ./...
    ```
 
-### Guidelines
-
-- Write tests for new features
-- Follow Go best practices and idioms
-- Update documentation for API changes
-- Ensure all tests pass before submitting PR
-- Use meaningful commit messages
+Please follow idiomatic Go style, document public API changes, and ensure the
+lint and test checks pass before opening a pull request. Conventional commit
+messages are encouraged.
 
 ## ⚠️ Disclaimer
 
-This library is for educational and research purposes only. Use at your own risk. The authors are not responsible for any misuse or damage caused by this library.
+This project is for educational and research purposes only. Use it at your own
+risk, respect the game's terms of service, and do not use it to disrupt the
+service or other players. The authors are not responsible for misuse or damage
+caused by this library.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-```
-Copyright (c) 2024 Arisu Archive
-```
+Plana Client is available under the [MIT License](LICENSE).
 
 ## 🙏 Acknowledgments
 
-- Built for the Blue Archive community
-- Uses Protocol Buffers and FlatBuffers for efficient serialization
-- Inspired by the need for programmatic game API access
+- Blue Archive and its game services are operated by their respective owners.
+- The project uses Protocol Buffers, FlatBuffers, Ginkgo, and Gomega.
+- Thanks to the Arisu Archive contributors and the Blue Archive community.
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/arisu-archive/go-plana/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/arisu-archive/go-plana/discussions)
+- 🐛 Issues: [GitHub Issues](https://github.com/arisu-archive/go-plana/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/arisu-archive/go-plana/discussions)
+- ⭐ Star this repository if you find it useful.
 
 ---
 
 <div align="center">
 
-**Made with ❤️ by the Arisu Archive team**
+**Made with ❤️ by the Arisu Archive Team**
 
-[⬆ Back to Top](#-go-plana)
+[⬆ Back to Top](#-plana-client)
 
 </div>
