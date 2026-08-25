@@ -19,6 +19,8 @@ import (
 	"sync"
 
 	"github.com/arisu-archive/plana-protos/protos"
+
+	encoder "github.com/arisu-archive/protocol-encoder-go/v2/pkg/encoder/plana"
 )
 
 const (
@@ -44,8 +46,7 @@ type Client struct {
 	BundleVersion string
 	UserAgent     string
 
-	ProtocolEncoderConfig *EncoderConfig   // Configuration for the protocol encoder service.
-	CookieJarConfig       *CookieJarConfig // Configuration for the cookie jar service.
+	CookieJarConfig *CookieJarConfig // Configuration for the cookie jar service.
 
 	// PublicKey is the RSA public key used for encrypting sensitive data.
 	publicKey *rsa.PublicKey
@@ -90,11 +91,12 @@ const (
 
 // requestParams groups arguments for newRequest so we don't exceed argument limits.
 type requestParams struct {
-	apiType  apiType
-	protocol protos.Protocol
-	body     RequestPacketReader
-	session  *UserSession
-	headers  map[string]string
+	apiType       apiType
+	protocol      protos.Protocol
+	body          RequestPacketReader
+	session       *UserSession
+	headers       map[string]string
+	gatewayBypass bool
 }
 
 // Request represents an API request.
@@ -137,9 +139,10 @@ func (*DefaultJSONSerializer) DeserializeReader(r io.Reader, v any) error {
 }
 
 type RequestBuilder struct {
-	client  *Client
-	session *UserSession
-	headers map[string]string
+	client        *Client
+	session       *UserSession
+	headers       map[string]string
+	gatewayBypass bool
 }
 
 func (c *Client) R() *RequestBuilder {
@@ -166,6 +169,11 @@ func (rb *RequestBuilder) WithHeaders(headers map[string]string) *RequestBuilder
 	return rb
 }
 
+func (rb *RequestBuilder) WithGatewayBypass() *RequestBuilder {
+	rb.gatewayBypass = true
+	return rb
+}
+
 func (rb *RequestBuilder) Gateway(
 	ctx context.Context,
 	protocol protos.Protocol,
@@ -173,11 +181,12 @@ func (rb *RequestBuilder) Gateway(
 	opts ...PacketPopulatorOption,
 ) (*Request, error) {
 	return rb.client.newRequest(ctx, requestParams{
-		apiType:  gateway,
-		protocol: protocol,
-		body:     body,
-		session:  rb.session,
-		headers:  rb.headers,
+		apiType:       gateway,
+		protocol:      protocol,
+		body:          body,
+		session:       rb.session,
+		headers:       rb.headers,
+		gatewayBypass: rb.gatewayBypass,
 	}, opts...)
 }
 
@@ -188,11 +197,12 @@ func (rb *RequestBuilder) Game(
 	opts ...PacketPopulatorOption,
 ) (*Request, error) {
 	return rb.client.newRequest(ctx, requestParams{
-		apiType:  game,
-		protocol: protocol,
-		body:     body,
-		session:  rb.session,
-		headers:  rb.headers,
+		apiType:       game,
+		protocol:      protocol,
+		body:          body,
+		session:       rb.session,
+		headers:       rb.headers,
+		gatewayBypass: rb.gatewayBypass,
 	}, opts...)
 }
 
@@ -219,16 +229,15 @@ func (c *Client) copy() *Client {
 	// shared across clones.
 	httpClientClone := *c.client
 	clone := &Client{
-		client:                &httpClientClone,
-		publicKey:             c.publicKey,
-		UserAgent:             c.UserAgent,
-		BundleVersion:         c.BundleVersion,
-		XorEncryptionKey:      c.XorEncryptionKey,
-		ProtocolEncoderConfig: c.ProtocolEncoderConfig,
-		CookieJarConfig:       c.CookieJarConfig,
-		JSONSerializer:        c.JSONSerializer,
-		GatewayURL:            c.GatewayURL,
-		GameURL:               c.GameURL,
+		client:           &httpClientClone,
+		publicKey:        c.publicKey,
+		UserAgent:        c.UserAgent,
+		BundleVersion:    c.BundleVersion,
+		XorEncryptionKey: c.XorEncryptionKey,
+		CookieJarConfig:  c.CookieJarConfig,
+		JSONSerializer:   c.JSONSerializer,
+		GatewayURL:       c.GatewayURL,
+		GameURL:          c.GameURL,
 	}
 	c.clientMu.Unlock()
 	// Shallow copy is sufficient since fields are either value types or pointers
@@ -246,20 +255,6 @@ func (c *Client) WithCookie(jar *CookieJarConfig) *Client {
 	c2 := c.copy()
 	defer c2.initialize()
 	c2.CookieJarConfig = jar
-	return c2
-}
-
-type EncoderConfig struct {
-	URL          *url.URL
-	ClientID     string
-	ClientSecret string
-}
-
-func (c *Client) WithEncoder(cfg *EncoderConfig) *Client {
-	// Copy a new Client to avoid modifying the original
-	c2 := c.copy()
-	defer c2.initialize()
-	c2.ProtocolEncoderConfig = cfg
 	return c2
 }
 
@@ -301,8 +296,8 @@ func (c *Client) initialize() *Client {
 	return c
 }
 
-func (c *Client) Do(ctx context.Context, req *Request, packet any) (*Response, error) {
-	resp, err := c.bareDo(ctx, req)
+func (c *Client) Do(req *Request, packet any) (*Response, error) {
+	resp, err := c.bareDo(req)
 	if err != nil {
 		return nil, err
 	}
@@ -366,8 +361,8 @@ func (c *Client) handleErrorPacket(responseData ResponseData) (*protos.ErrorPack
 	return errorPacket, nil
 }
 
-func (c *Client) bareDo(ctx context.Context, req *Request) (*Response, error) {
-	resp, err := c.client.Do(req.WithContext(ctx)) //nolint:bodyclose // response body will be handled by caller
+func (c *Client) bareDo(req *Request) (*Response, error) {
+	resp, err := c.client.Do(req.Request) //nolint:bodyclose // response body will be handled by caller
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
@@ -418,16 +413,13 @@ func (c *Client) newRequest(
 	c.populate(params.body.Packet(), params.protocol, opts...)
 	// Process payload through crypto pipeline
 	// For now, we assume gateway bypass is false
-	payload, err := c.processor.Process(params.body, params.session, false)
+	payload, err := c.processor.Process(params.body, params.session, params.gatewayBypass)
 	if err != nil {
 		return nil, err
 	}
 	// Encode protocol with checksum
 	checksum := computeHash(payload, 0)
-	encodedProtocol, err := c.encodeProtocol(ctx, checksum, params.protocol)
-	if err != nil {
-		return nil, fmt.Errorf("protocol encoding failed: %w", err)
-	}
+	encodedProtocol := encoder.Encode(params.protocol, checksum)
 	// Build final packet
 	packetData := c.processor.BuildPacket(payload, checksum, encodedProtocol, params.session)
 	// Create multipart form
@@ -438,7 +430,7 @@ func (c *Client) newRequest(
 	}
 
 	// Build HTTP request
-	req, err := c.buildHTTPRequest(params.apiType, buf, contentType, params.headers)
+	req, err := c.buildHTTPRequest(ctx, params, buf, contentType)
 	if err != nil {
 		return nil, err
 	}
@@ -451,13 +443,13 @@ func (c *Client) newRequest(
 }
 
 // buildHTTPRequest creates the HTTP request with proper headers.
-func (c *Client) buildHTTPRequest(apiType apiType, body *bytes.Buffer, contentType string, customHeaders map[string]string) (*http.Request, error) {
-	u, err := c.getBaseURL(apiType).Parse("/api/gateway")
+func (c *Client) buildHTTPRequest(ctx context.Context, params requestParams, body *bytes.Buffer, contentType string) (*http.Request, error) {
+	u, err := c.getBaseURL(params.apiType).Parse("/api/gateway")
 	if err != nil {
 		return nil, fmt.Errorf("URL parse failed: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, u.String(), body) //nolint:noctx // context will be added in Do method
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), body)
 	if err != nil {
 		return nil, fmt.Errorf("request creation failed: %w", err)
 	}
@@ -472,7 +464,7 @@ func (c *Client) buildHTTPRequest(apiType apiType, body *bytes.Buffer, contentTy
 	req.Header.Set("Accept-Encoding", "identity")
 
 	// Apply custom headers
-	for key, value := range customHeaders {
+	for key, value := range params.headers {
 		req.Header.Set(key, value)
 	}
 

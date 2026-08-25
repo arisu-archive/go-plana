@@ -68,7 +68,7 @@ func (s *ClanService) submitSearch(
 		return nil, fmt.Errorf("failed to create clan search request: %w", err)
 	}
 	result := new(protos.ClanSearchResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("clan search request failed: %w", err)
 	}
@@ -97,7 +97,7 @@ func (s *ClanService) GetMembers(
 		return nil, err
 	}
 	result := new(protos.ClanMemberListResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("clan member list request failed: %w", err)
 	}

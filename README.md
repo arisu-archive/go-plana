@@ -136,7 +136,7 @@ if err != nil {
 
 // Execute the request
 var response protos.RaidLobbyResponse
-_, err = client.Do(ctx, req, &response)
+_, err = client.Do(req, &response)
 ```
 
 ## 📚 Documentation

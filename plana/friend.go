@@ -29,7 +29,7 @@ func (s *FriendService) GetDetail(ctx context.Context, session *UserSession, acc
 		return nil, fmt.Errorf("failed to create get friend detail request: %w", err)
 	}
 	result := new(protos.FriendGetFriendDetailedInfoResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("get friend detail request failed: %w", err)
 	}
@@ -78,7 +78,7 @@ func (s *FriendService) submitSearch(ctx context.Context, session *UserSession, 
 		return nil, fmt.Errorf("failed to create friend search request: %w", err)
 	}
 	result := new(protos.FriendSearchResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("friend search request failed: %w", err)
 	}

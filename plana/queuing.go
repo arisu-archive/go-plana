@@ -42,7 +42,7 @@ func (s *QueuingService) GetAuthTicket(ctx context.Context, data GetAuthTicketOp
 		return nil, fmt.Errorf("failed to create get auth ticket request: %w", err)
 	}
 	result := new(protos.QueuingGetAuthTicketResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("get auth ticket request failed: %w", err)
 	}
@@ -77,7 +77,7 @@ func (s *QueuingService) ProcessWaitingQueue(ctx context.Context, session *UserS
 		return nil, fmt.Errorf("failed to create queuing process request: %w", err)
 	}
 	result := new(protos.QueuingProcessWaitingQueueResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("queuing process request failed: %w", err)
 	}

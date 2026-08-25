@@ -102,7 +102,7 @@ func decryptPayload(payload, aesKey, iv []byte) ([]byte, error) {
 
 func pkcs7Padding(ciphertext []byte, blockSize int) []byte {
 	padding := blockSize - len(ciphertext)%blockSize
-	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	padtext := bytes.Repeat([]byte{byte(padding & 0xff)}, padding)
 	return append(ciphertext, padtext...)
 }
 
