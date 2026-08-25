@@ -23,13 +23,10 @@ import (
 	encoder "github.com/arisu-archive/protocol-encoder-go/v2/pkg/encoder/plana"
 )
 
+//go:generate go run ../internal/cmd/generate-defaults
 const (
-	Version              = "1.82.390231"
-	defaultBundleVersion = "qtmrfsa5k8"
-	defaultUserAgent     = "BestHTTP/2 v2.4.0"
-	defaultXorKey        = 0xD9
-	defaultGatewayURL    = "https://prod-gateway.bluearchiveyostar.com:5100/"
-	defaultGameURL       = "https://prod-game.bluearchiveyostar.com:5000/"
+	defaultUserAgent = "BestHTTP/2 v2.4.0"
+	defaultXorKey    = 0xD9
 )
 
 type Client struct {
@@ -444,10 +441,7 @@ func (c *Client) newRequest(
 
 // buildHTTPRequest creates the HTTP request with proper headers.
 func (c *Client) buildHTTPRequest(ctx context.Context, params requestParams, body *bytes.Buffer, contentType string) (*http.Request, error) {
-	u, err := c.getBaseURL(params.apiType).Parse("/api/gateway")
-	if err != nil {
-		return nil, fmt.Errorf("URL parse failed: %w", err)
-	}
+	u := c.getBaseURL(params.apiType).JoinPath("gateway")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), body)
 	if err != nil {

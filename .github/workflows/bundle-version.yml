@@ -1,0 +1,48 @@
+name: Bump Bundle Version
+
+on:
+  schedule:
+    # Check every hour from 01:00 (10:00 JST) to 14:00 (23:00 JST) everyday
+    - cron: "0 1-14 * * *"
+
+  workflow_dispatch:
+    inputs:
+      force_update:
+        type: boolean
+        required: false
+        description: "Force update the bundle version"
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    name: Update Bundle Version
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Generate game defaults
+        run: go generate ./plana
+
+      - name: Verify build and tests
+        run: |
+          go build ./...
+          go test ./...
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "fix: update generated game defaults"
+          branch: update-game-defaults
+          title: "fix: update generated game defaults"
+          body: |
+            Automated refresh of `plana/plana_gen.go` via `go generate ./plana`.
+          base: master
