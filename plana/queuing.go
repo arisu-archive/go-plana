@@ -10,6 +10,34 @@ import (
 
 type QueuingService service
 
+type GetCryptoKeysRequestWrapper struct {
+	*protos.QueuingGetCryptoKeysRequest
+}
+
+func (p GetCryptoKeysRequestWrapper) Packet() *protos.RequestPacket {
+	return &p.RequestPacket
+}
+
+func (s *QueuingService) GetCryptoKeys(ctx context.Context, bundle AESKeyBundle) (*protos.QueuingGetCryptoKeysResponse, error) {
+	param := GetCryptoKeysRequestWrapper{
+		QueuingGetCryptoKeysRequest: &protos.QueuingGetCryptoKeysRequest{
+			ClientGeneratedKey: base64.StdEncoding.EncodeToString(bundle.Key),
+			ClientGeneratedIV:  base64.StdEncoding.EncodeToString(bundle.IV),
+		},
+	}
+	// It requires a session for this request
+	req, err := s.client.R().Gateway(ctx, protos.Protocol_Queuing_GetCryptoKeys, param, WithHash(0))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create get auth ticket request: %w", err)
+	}
+	result := new(protos.QueuingGetCryptoKeysResponse)
+	_, err = s.client.Do(req, result)
+	if err != nil {
+		return nil, fmt.Errorf("get auth ticket request failed: %w", err)
+	}
+	return result, nil
+}
+
 type GetAuthTicketOptions struct {
 	KeyBundle     AESKeyBundle
 	ClientVersion string
