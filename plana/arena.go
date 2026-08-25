@@ -33,7 +33,7 @@ func (s *ArenaService) GetRanks(
 		return nil, fmt.Errorf("failed to create arena rank list request: %w", err)
 	}
 	result := new(protos.ArenaRankListResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get arena rank list response: %w", err)
 	}

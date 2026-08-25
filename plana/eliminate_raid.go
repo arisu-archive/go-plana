@@ -76,7 +76,7 @@ func (s *EliminateRaidService) GetOpponents(
 		o(payload.EliminateRaidOpponentListRequest)
 	}
 	result := new(protos.EliminateRaidOpponentListResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("eliminate raid opponent list request failed: %w", err)
 	}
@@ -100,7 +100,7 @@ func (s *EliminateRaidService) GetLobby(ctx context.Context, session *UserSessio
 		return nil, fmt.Errorf("failed to create eliminate raid lobby request: %w", err)
 	}
 	result := new(protos.EliminateRaidLobbyResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("eliminate raid lobby request failed: %w", err)
 	}
@@ -126,7 +126,7 @@ func (s *EliminateRaidService) GetBestTeam(ctx context.Context, session *UserSes
 		return nil, fmt.Errorf("failed to create eliminate raid get best team request: %w", err)
 	}
 	result := new(protos.EliminateRaidGetBestTeamResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("eliminate raid get best team request failed: %w", err)
 	}
@@ -150,7 +150,7 @@ func (s *EliminateRaidService) GetRankingIndex(ctx context.Context, session *Use
 		return nil, fmt.Errorf("failed to create eliminate raid ranking index request: %w", err)
 	}
 	result := new(protos.EliminateRaidRankingIndexResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("eliminate raid ranking index request failed: %w", err)
 	}

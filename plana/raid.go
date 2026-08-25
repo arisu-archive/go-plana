@@ -69,7 +69,7 @@ func (s *RaidService) GetOpponents(
 		return nil, fmt.Errorf("failed to create raid opponent list request: %w", err)
 	}
 	result := new(protos.RaidOpponentListResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("raid opponent list request failed: %w", err)
 	}
@@ -93,7 +93,7 @@ func (s *RaidService) Lobby(ctx context.Context, session *UserSession) (*protos.
 		return nil, fmt.Errorf("failed to create raid lobby request: %w", err)
 	}
 	result := new(protos.RaidLobbyResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("raid lobby request failed: %w", err)
 	}
@@ -119,7 +119,7 @@ func (s *RaidService) GetBestTeam(ctx context.Context, session *UserSession, acc
 		return nil, fmt.Errorf("failed to create raid get best team request: %w", err)
 	}
 	result := new(protos.RaidGetBestTeamResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("raid get best team request failed: %w", err)
 	}
@@ -143,7 +143,7 @@ func (s *RaidService) GetRankingIndex(ctx context.Context, session *UserSession)
 		return nil, fmt.Errorf("failed to create raid ranking index request: %w", err)
 	}
 	result := new(protos.RaidRankingIndexResponse)
-	_, err = s.client.Do(ctx, req, result)
+	_, err = s.client.Do(req, result)
 	if err != nil {
 		return nil, fmt.Errorf("raid ranking index request failed: %w", err)
 	}
