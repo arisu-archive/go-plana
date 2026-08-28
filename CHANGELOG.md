@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/arisu-archive/go-plana/compare/v1.5.0...v1.5.1) (2026-08-28)
+
+
+### Bug Fixes
+
+* update generated game defaults ([#35](https://github.com/arisu-archive/go-plana/issues/35)) ([b7abbfb](https://github.com/arisu-archive/go-plana/commit/b7abbfbe6057b783dd56d87ad69a8e626f42d268))
+
 ## [1.5.0](https://github.com/arisu-archive/go-plana/compare/v1.4.0...v1.5.0) (2026-08-25)
 
 
