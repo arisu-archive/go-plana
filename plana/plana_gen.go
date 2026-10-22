@@ -4,7 +4,7 @@ package plana
 
 const (
 	Version              = "1.73.459696"
-	defaultBundleVersion = "s8tloc7lo3"
+	defaultBundleVersion = "zomfchulg8"
 	defaultGatewayURL    = "https://prod-gateway.bluearchiveyostar.com:5100/api/"
 	defaultGameURL       = "https://prod-game.bluearchiveyostar.com:5000/api/"
 )
