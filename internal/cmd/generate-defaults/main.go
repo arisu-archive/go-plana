@@ -19,7 +19,7 @@ import (
 
 const (
 	versionURL          = "https://ba.pokeguy.dev/com.YostarJP.BlueArchive/version.txt"
-	configURLFormat     = "https://ba.pokeguy.dev/com.YostarJP.BlueArchive/decompiled/%s/GameMainConfig.json"
+	configURLFormat     = "https://ba.pokeguy.dev/com.YostarJP.BlueArchive/%s/GameMainConfig.json"
 	generatedOutputPath = "plana_gen.go"
 	generatorUserAgent  = "go-plana-defaults-generator/1.0"
 	requestTimeout      = 30 * time.Second
