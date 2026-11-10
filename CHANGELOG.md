@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.4](https://github.com/arisu-archive/go-plana/compare/v1.5.3...v1.5.4) (2026-11-10)
+
+
+### Bug Fixes
+
+* correct config URL format for game main config ([e6d67ca](https://github.com/arisu-archive/go-plana/commit/e6d67ca56d7096be0f6f83f529a0ea201b814ad2))
+* update generated game defaults ([#41](https://github.com/arisu-archive/go-plana/issues/41)) ([fdeed47](https://github.com/arisu-archive/go-plana/commit/fdeed47b31ec2b70e2bdb17aea9fb6dbc5c41e9f))
+
 ## [1.5.3](https://github.com/arisu-archive/go-plana/compare/v1.5.2...v1.5.3) (2026-10-22)
 
 
